@@ -32,7 +32,7 @@ internal class Program
         {
             configuration
                 .WriteTo.Console()
-                .MinimumLevel.Warning();
+                .MinimumLevel.Debug();
         });
 
         AddServices(builder);
