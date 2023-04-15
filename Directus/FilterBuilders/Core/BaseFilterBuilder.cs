@@ -91,7 +91,16 @@ public abstract class BaseFilterBuilder<T> where T : BaseFilterBuilder<T>
 
     public T WithSort(string sort)
     {
-        specialFilters["sort[]"] = sort;
+        if (sort.Contains(','))
+        {
+            string[] splits = sort.Split(',');
+            specialFilters["sort[]"] = string.Join("&sort[]=", splits);
+        }
+        else
+        {
+            specialFilters["sort[]"] = sort;
+        }
+
         return (T)this;
     }
 
