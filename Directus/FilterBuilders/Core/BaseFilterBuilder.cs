@@ -15,6 +15,9 @@ public abstract class BaseFilterBuilder<T> where T : BaseFilterBuilder<T>
 
     protected T AddFilter(string key, object? value, FilterMode mode = FilterMode.Equals)
     {
+        if (!key.StartsWith("[") && !key.EndsWith("]"))
+            key = $"[{key}]";
+        
         if (value != null)
             filters[key] = new Filter(key, value.ToString()!, mode);
         return (T)this;
