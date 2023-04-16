@@ -23,7 +23,7 @@
         <PackageReference Include="Semver" Version="2.3.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
         <PackageReference Include="SteamWebAPI2" Version="4.4.0" />
-        <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="2.0.0" />
+        <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="2.0.1" />
     </ItemGroup>
 
     <ItemGroup>
