@@ -87,10 +87,20 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
                 }
                 else
                 {
-                    filter
-                        .WithBestOnly(req.BestOnly)
-                        .WithValidOnly(req.ValidOnly)
-                        .WithWorldRecordOnly(req.WorldRecordOnly);
+                    if (req.BestOnly.HasValue && req.BestOnly.Value)
+                    {
+                        filter.WithBestOnly(true);
+                    }
+                    
+                    if (req.ValidOnly.HasValue && req.ValidOnly.Value)
+                    {
+                        filter.WithValidOnly(true);
+                    }
+                    
+                    if (req.WorldRecordOnly.HasValue && req.WorldRecordOnly.Value)
+                    {
+                        filter.WithWorldRecordOnly(true);
+                    }
                 }
 
                 filter
