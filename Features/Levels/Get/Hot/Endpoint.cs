@@ -38,7 +38,8 @@ FROM records r
          INNER JOIN levels l ON r.level = l.id
 WHERE DATE(r.date_created) = CURRENT_DATE
 GROUP BY l.id
-ORDER BY records_count DESC;
+ORDER BY records_count DESC
+LIMIT 10;
 ";
                 await connection.OpenAsync(ct);
                 using (DbDataReader reader = await cmd.ExecuteReaderAsync(ct))
