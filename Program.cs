@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
+using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Options;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
@@ -50,6 +51,8 @@ internal class Program
         builder.Services.Configure<DirectusOptions>(builder.Configuration.GetSection("Directus"));
         builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("Steam"));
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
+
+        builder.Services.AddNpgsql<GTRContext>(builder.Configuration["Database:ConnectionString"]);
 
         builder.Host.UseConsoleLifetime(options => options.SuppressStatusMessages = true);
 
