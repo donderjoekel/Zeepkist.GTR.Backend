@@ -26,12 +26,12 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
     public override async Task HandleAsync(CancellationToken ct)
     {
         var list = await context.Records
-            .Where(x => GTRContext.DateTrunc("day", x.DateCreated) == GTRContext.DateTrunc("day", DateTime.Now))
-            .GroupBy(x => x.LevelId)
+            .Where(x => GTRContext.DateTrunc("day", x.DateCreated!.Value) == GTRContext.DateTrunc("day", DateTime.Now))
+            .GroupBy(x => x.Level)
             .Select(x => new
             {
-                LevelId = x.Key,
-                LevelName = x.First().Level.Name,
+                LevelId = x.Key!.Value,
+                LevelName = x.First().LevelNavigation!.Name!,
                 RecordsCount = x.Count()
             })
             .OrderByDescending(x => x.RecordsCount)
