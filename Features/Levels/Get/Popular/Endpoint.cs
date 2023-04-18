@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
-namespace TNRD.Zeepkist.GTR.Backend.Features.Levels.Get.Hot;
+namespace TNRD.Zeepkist.GTR.Backend.Features.Levels.Get.Popular;
 
-internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
+internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
 {
     private readonly GTRContext context;
 
@@ -20,13 +20,15 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
     public override void Configure()
     {
         AllowAnonymous();
-        Get("levels/hot");
+        Get("levels/popular");
     }
 
     /// <inheritdoc />
     public override async Task HandleAsync(CancellationToken ct)
     {
-        List<LevelsGetHotResponseDTO.Info> infos = new();
+        // TODO: Should definitely add caching here
+
+        List<LevelsGetPopularResponseDTO.Info> infos = new();
 
         using (DbConnection connection = context.Database.GetDbConnection())
         {
@@ -36,10 +38,10 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
                     @"SELECT l.id as level_id, l.name AS level_name, COUNT(DISTINCT r.user) AS records_count
 FROM records r
          INNER JOIN levels l ON r.level = l.id
-WHERE DATE(r.date_created) = CURRENT_DATE
+WHERE DATE_TRUNC('month', r.date_created) = DATE_TRUNC('month', CURRENT_DATE)
 GROUP BY l.id
 ORDER BY records_count DESC
-LIMIT 10;";
+LIMIT 50;";
 
                 await connection.OpenAsync(ct);
                 using (DbDataReader reader = await cmd.ExecuteReaderAsync(ct))
@@ -50,7 +52,7 @@ LIMIT 10;";
                         string levelName = reader.GetString(1);
                         int recordsCount = reader.GetInt32(2);
 
-                        LevelsGetHotResponseDTO.Info info = new()
+                        LevelsGetPopularResponseDTO.Info info = new()
                         {
                             RecordsCount = recordsCount,
                             LevelId = levelId,
@@ -63,7 +65,7 @@ LIMIT 10;";
             }
         }
 
-        await SendOkAsync(new LevelsGetHotResponseDTO()
+        await SendOkAsync(new LevelsGetPopularResponseDTO()
             {
                 Levels = infos
             },
