@@ -1,4 +1,5 @@
-﻿using FastEndpoints;
+﻿using System.Data.Common;
+using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
@@ -25,28 +26,40 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var list = await context.Records
-            .Where(x => GTRContext.DateTrunc("day", x.DateCreated!.Value) == GTRContext.DateTrunc("day", DateTime.Now))
-            .GroupBy(x => x.Level)
-            .Select(x => new
-            {
-                LevelId = x.Key!.Value,
-                LevelName = x.First().LevelNavigation!.Name!,
-                RecordsCount = x.Count()
-            })
-            .OrderByDescending(x => x.RecordsCount)
-            .ToListAsync(ct);
-
         List<LevelsGetHotResponseDTO.Info> infos = new();
 
-        foreach (var item in list)
+        using (DbConnection connection = context.Database.GetDbConnection())
         {
-            LevelsGetHotResponseDTO.Info info = new LevelsGetHotResponseDTO.Info()
+            using (DbCommand cmd = connection.CreateCommand())
             {
-                RecordsCount = item.RecordsCount,
-                LevelId = item.LevelId,
-                LevelName = item.LevelName
-            };
+                cmd.CommandText =
+                    @"SELECT l.id as level_id, l.name AS level_name, COUNT(DISTINCT r.user) AS records_count
+FROM records r
+         INNER JOIN levels l ON r.level = l.id
+WHERE DATE(r.date_created) = CURRENT_DATE
+GROUP BY l.id
+ORDER BY records_count DESC;
+";
+                await connection.OpenAsync(ct);
+                using (DbDataReader reader = await cmd.ExecuteReaderAsync(ct))
+                {
+                    while (await reader.ReadAsync(ct))
+                    {
+                        int levelId = reader.GetInt32(0);
+                        string levelName = reader.GetString(1);
+                        int recordsCount = reader.GetInt32(2);
+
+                        LevelsGetHotResponseDTO.Info info = new LevelsGetHotResponseDTO.Info()
+                        {
+                            RecordsCount = recordsCount,
+                            LevelId = levelId,
+                            LevelName = levelName
+                        };
+
+                        infos.Add(info);
+                    }
+                }
+            }
         }
 
         await SendOkAsync(new LevelsGetHotResponseDTO()
