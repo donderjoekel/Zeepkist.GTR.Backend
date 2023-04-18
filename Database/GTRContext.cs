@@ -10,6 +10,11 @@ internal class GTRContext : DbContext
     public DbSet<Level> Levels { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
 
+    public GTRContext(DbContextOptions<GTRContext> options)
+        : base(options)
+    {
+    }
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
