@@ -3,6 +3,7 @@ using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
+using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Levels.Get.Popular;
 
@@ -30,39 +31,42 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
 
         List<LevelsGetPopularResponseDTO.Info> infos = new();
 
-        using (DbConnection connection = context.Database.GetDbConnection())
-        {
-            using (DbCommand cmd = connection.CreateCommand())
+        var query = from r in context.Records
+            join l in context.Levels on r.Level equals l.Id
+            where r.DateCreated?.Month == DateTime.Today.Month
+            group r by l
+            into g
+            orderby g.Count() descending
+            select new
             {
-                cmd.CommandText =
-                    @"SELECT l.id as level_id, l.name AS level_name, COUNT(DISTINCT r.user) AS records_count
-FROM records r
-         INNER JOIN levels l ON r.level = l.id
-WHERE DATE_TRUNC('month', r.date_created) = DATE_TRUNC('month', CURRENT_DATE)
-GROUP BY l.id
-ORDER BY records_count DESC
-LIMIT 50;";
+                Level = g.Key,
+                RecordsCount = g.Select(r => r.User).Distinct().Count()
+            };
 
-                await connection.OpenAsync(ct);
-                using (DbDataReader reader = await cmd.ExecuteReaderAsync(ct))
+        var result = await query.Take(10).ToListAsync(cancellationToken: ct);
+
+        foreach (var x1 in result)
+        {
+            LevelsGetPopularResponseDTO.Info info = new()
+            {
+                Level = new LevelResponseModel()
                 {
-                    while (await reader.ReadAsync(ct))
-                    {
-                        int levelId = reader.GetInt32(0);
-                        string levelName = reader.GetString(1);
-                        int recordsCount = reader.GetInt32(2);
+                    Id = x1.Level.Id,
+                    Name = x1.Level.Name,
+                    Author = x1.Level.Author,
+                    IsValid = x1.Level.IsValid,
+                    ThumbnailUrl = x1.Level.ThumbnailUrl,
+                    TimeAuthor = x1.Level.TimeAuthor,
+                    TimeGold = x1.Level.TimeGold,
+                    TimeSilver = x1.Level.TimeSilver,
+                    TimeBronze = x1.Level.TimeBronze,
+                    UniqueId = x1.Level.Uid,
+                    WorkshopId = x1.Level.Wid,
+                },
+                RecordsCount = x1.RecordsCount
+            };
 
-                        LevelsGetPopularResponseDTO.Info info = new()
-                        {
-                            RecordsCount = recordsCount,
-                            LevelId = levelId,
-                            LevelName = levelName
-                        };
-
-                        infos.Add(info);
-                    }
-                }
-            }
+            infos.Add(info);
         }
 
         await SendOkAsync(new LevelsGetPopularResponseDTO()
