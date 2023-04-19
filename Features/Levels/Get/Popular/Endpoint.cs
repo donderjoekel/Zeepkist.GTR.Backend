@@ -33,7 +33,7 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
 
         var query = from r in context.Records
             join l in context.Levels on r.Level equals l.Id
-            where r.DateCreated?.Month == DateTime.Today.Month
+            where r.DateCreated.Value.Month == DateTime.Today.Month
             group r by l
             into g
             orderby g.Count() descending
