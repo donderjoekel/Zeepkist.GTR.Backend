@@ -60,18 +60,7 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
             }
         }
 
-        List<LevelsGetPopularResponseDTO.Info> infos = new()
-        {
-            new LevelsGetPopularResponseDTO.Info()
-            {
-                Level = new LevelResponseModel()
-                {
-                    Id = 1,
-                    Name = "Test"
-                },
-                RecordsCount = 1
-            }
-        };
+        List<LevelsGetPopularResponseDTO.Info> infos = new();
         foreach (KeyValuePair<LevelResponseModel, int> pair in levelRecordsCount)
         {
             LevelsGetPopularResponseDTO.Info info = new()
