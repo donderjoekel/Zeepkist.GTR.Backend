@@ -47,6 +47,8 @@ internal class Program
 
     private static void AddServices(WebApplicationBuilder builder)
     {
+        builder.Services.AddMemoryCache();
+
         builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
         builder.Services.Configure<DirectusOptions>(builder.Configuration.GetSection("Directus"));
         builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("Steam"));
