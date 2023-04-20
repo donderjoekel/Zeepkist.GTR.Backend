@@ -71,6 +71,8 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
             infos.Add(info);
         }
 
+        infos = infos.OrderByDescending(x => x.RecordsCount).Take(50).ToList();
+
         TimeSpan expiry = now.AddDays(1).Date - now;
         if (expiry > TimeSpan.FromHours(1))
             expiry = TimeSpan.FromHours(1);
@@ -79,7 +81,7 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
 
         await SendOkAsync(new LevelsGetPopularResponseDTO()
             {
-                Levels = infos.OrderByDescending(x => x.RecordsCount).Take(25).ToList()
+                Levels = infos
             },
             ct);
     }
