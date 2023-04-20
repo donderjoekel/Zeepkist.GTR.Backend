@@ -103,7 +103,7 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
                 RecordsCount = g.Select(r => r.User).Distinct().Count()
             };
 
-        var result = await query.Take(25).ToListAsync(cancellationToken: ct);
+        var result = await query.ToListAsync(cancellationToken: ct);
 
         foreach (var x1 in result)
         {
