@@ -79,7 +79,7 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
 
         await SendOkAsync(new LevelsGetPopularResponseDTO()
             {
-                Levels = infos
+                Levels = infos.OrderByDescending(x => x.RecordsCount).Take(25).ToList()
             },
             ct);
     }
