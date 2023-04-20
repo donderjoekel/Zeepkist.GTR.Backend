@@ -49,7 +49,7 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
 
         for (int i = minDay; i < maxDay; i++)
         {
-            DateTime date = new DateTime(now.Year, now.Month, i);
+            DateTime date = DateTime.SpecifyKind(new DateTime(now.Year, now.Month, i), DateTimeKind.Utc);
             List<LevelsGetPopularResponseDTO.Info> infosForDay = await GetPopularLevelsForDay(date, ct);
             foreach (LevelsGetPopularResponseDTO.Info info in infosForDay)
             {
