@@ -76,7 +76,7 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
 
         await SendOkAsync(new LevelsGetHotResponseDTO()
             {
-                Levels = infos.Take(10).OrderByDescending(x => x.RecordsCount).ToList()
+                Levels = infos.OrderByDescending(x => x.RecordsCount).Take(10).ToList()
             },
             ct);
     }
