@@ -95,40 +95,47 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
 
         var query = from r in context.Records
             join l in context.Levels on r.Level equals l.Id
-            where r.DateCreated.Value.Date == date.Date && r.IsValid == true
+            where r.DateCreated.Value.Date == DateTime.Today && r.IsValid == true
             group r by l
             into g
             orderby g.Count() descending
             select new
             {
                 Level = g.Key,
-                RecordsCount = g.Select(r => r.User).Distinct().Count()
+                Records = g.Select(r => r)
             };
 
-        var result = await query.ToListAsync(cancellationToken: ct);
-
-        foreach (var x1 in result)
+        var results = await query.ToListAsync(ct);
+        foreach(var result in results)
         {
-            LevelsGetPopularResponseDTO.Info info = new()
+            HashSet<int> userIds = new HashSet<int>();
+
+            foreach(var record in result.Records)
+            {
+                if (userIds.Contains(record.User!.Value))
+                    continue;
+
+                userIds.Add(record.User!.Value);
+            }
+
+            infos.Add(new LevelsGetPopularResponseDTO.Info()
             {
                 Level = new LevelResponseModel()
                 {
-                    Id = x1.Level.Id,
-                    Name = x1.Level.Name,
-                    Author = x1.Level.Author,
-                    IsValid = x1.Level.IsValid,
-                    ThumbnailUrl = x1.Level.ThumbnailUrl,
-                    TimeAuthor = x1.Level.TimeAuthor,
-                    TimeGold = x1.Level.TimeGold,
-                    TimeSilver = x1.Level.TimeSilver,
-                    TimeBronze = x1.Level.TimeBronze,
-                    UniqueId = x1.Level.Uid,
-                    WorkshopId = x1.Level.Wid,
+                    Id = result.Level.Id,
+                    Name = result.Level.Name,
+                    Author = result.Level.Author,
+                    IsValid = result.Level.IsValid,
+                    ThumbnailUrl = result.Level.ThumbnailUrl,
+                    TimeAuthor = result.Level.TimeAuthor,
+                    TimeGold = result.Level.TimeGold,
+                    TimeSilver = result.Level.TimeSilver,
+                    TimeBronze = result.Level.TimeBronze,
+                    UniqueId = result.Level.Uid,
+                    WorkshopId = result.Level.Wid,
                 },
-                RecordsCount = x1.RecordsCount
-            };
-
-            infos.Add(info);
+                RecordsCount = userIds.Count
+            });
         }
 
         return infos;
