@@ -2,8 +2,12 @@
 using FastEndpoints;
 using FluentResults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
 using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 
@@ -28,11 +32,13 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
 
     private readonly IDirectusClient client;
     private readonly IGoogleUploadService googleUploadService;
+    private readonly GTRContext context;
 
-    public Endpoint(IDirectusClient client, IGoogleUploadService googleUploadService)
+    public Endpoint(IDirectusClient client, IGoogleUploadService googleUploadService, GTRContext context)
     {
         this.client = client;
         this.googleUploadService = googleUploadService;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -44,9 +50,51 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
         // PostProcessors(new TrackOfTheDayPostProcessor());
     }
 
+    private async Task<bool> DoesRecordExist(RequestModel req, CancellationToken ct)
+    {
+        string joinedSplits = string.Join('|', req.Splits);
+
+        IQueryable<Record> queryable = from r in context.Records
+            where r.User.Value == req.User &&
+                  r.Level.Value == req.Level &&
+                  r.Time.Value == req.Time &&
+                  r.Splits == joinedSplits
+            select r;
+
+        Record? existingRecord = await queryable.FirstOrDefaultAsync(ct);
+        if (existingRecord == null) 
+            return false;
+
+        TimeSpan a = DateTime.Now - existingRecord.DateCreated!.Value;
+        TimeSpan b = DateTime.UtcNow - existingRecord.DateCreated!.Value;
+            
+        return a < TimeSpan.FromMinutes(1) || b < TimeSpan.FromMinutes(1);
+    }
+
     /// <inheritdoc />
     public override async Task HandleAsync(RequestModel req, CancellationToken ct)
     {
+        if (!this.TryGetUserId(out int userId))
+        {
+            Logger.LogCritical("No UserId claim found!");
+            ThrowError("Unable to find user id!");
+            return;
+        }
+
+        if (userId != req.User)
+        {
+            Logger.LogCritical("UserId claim does not match request!");
+            ThrowError("User id does not match!");
+            return;
+        }
+
+        if (await DoesRecordExist(req, ct))
+        {
+            Logger.LogWarning("Double record submission detected!");
+            ThrowError("Record already exists!");
+            return;
+        }
+
         string identifier = Guid.NewGuid().ToString();
 
         Result<UploadDataResult> uploadResult = await UploadData(identifier, req, ct);
