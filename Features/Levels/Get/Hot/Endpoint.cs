@@ -38,38 +38,45 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
             select new
             {
                 Level = g.Key,
-                RecordsCount = g.Select(r => r.User).Distinct().Count()
+                Records = g.Select(r => r)
             };
 
-        var result = await query.Take(10).ToListAsync(cancellationToken: ct);
-
-        foreach (var x1 in result)
+        var results = await query.ToListAsync(ct);
+        foreach(var result in results)
         {
-            LevelsGetHotResponseDTO.Info info = new LevelsGetHotResponseDTO.Info()
+            HashSet<int> userIds = new HashSet<int>();
+
+            foreach(var record in result.Records)
+            {
+                if (userIds.Contains(record.User!.Value))
+                    continue;
+
+                userIds.Add(record.User!.Value);
+            }
+
+            infos.Add(new LevelsGetHotResponseDTO.Info()
             {
                 Level = new LevelResponseModel()
                 {
-                    Id = x1.Level.Id,
-                    Name = x1.Level.Name,
-                    Author = x1.Level.Author,
-                    IsValid = x1.Level.IsValid,
-                    ThumbnailUrl = x1.Level.ThumbnailUrl,
-                    TimeAuthor = x1.Level.TimeAuthor,
-                    TimeGold = x1.Level.TimeGold,
-                    TimeSilver = x1.Level.TimeSilver,
-                    TimeBronze = x1.Level.TimeBronze,
-                    UniqueId = x1.Level.Uid,
-                    WorkshopId = x1.Level.Wid,
+                    Id = result.Level.Id,
+                    Name = result.Level.Name,
+                    Author = result.Level.Author,
+                    IsValid = result.Level.IsValid,
+                    ThumbnailUrl = result.Level.ThumbnailUrl,
+                    TimeAuthor = result.Level.TimeAuthor,
+                    TimeGold = result.Level.TimeGold,
+                    TimeSilver = result.Level.TimeSilver,
+                    TimeBronze = result.Level.TimeBronze,
+                    UniqueId = result.Level.Uid,
+                    WorkshopId = result.Level.Wid,
                 },
-                RecordsCount = x1.RecordsCount
-            };
-
-            infos.Add(info);
+                RecordsCount = userIds.Count
+            });
         }
 
         await SendOkAsync(new LevelsGetHotResponseDTO()
             {
-                Levels = infos
+                Levels = infos.Take(10).OrderByDescending(x => x.RecordsCount).ToList()
             },
             ct);
     }
