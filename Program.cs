@@ -55,20 +55,20 @@ internal class Program
         {
             q.UseMicrosoftDependencyInjectionJobFactory();
 
-            JobKey key = new JobKey("CalculateRankingsJob");
-            q.AddJob<CalculateRankingsJob>(opts=>opts.WithIdentity(key));
+            JobKey key = new JobKey("CalculatePopularityJob");
+            q.AddJob<CalculatePopularityJob>(opts=>opts.WithIdentity(key));
             
             q.AddTrigger(opts =>
             {
                 opts.ForJob(key)
-                    .WithIdentity("CalculateRankingsJob-Trigger")
+                    .WithIdentity("CalculatePopularityJob-Trigger")
                     .WithCronSchedule("0 0 * ? * * *");
             });
 
             q.AddTrigger(opts =>
             {
                 opts.ForJob(key)
-                    .WithIdentity("CalculateRankingsJob-OnStartup")
+                    .WithIdentity("CalculatePopularityJob-OnStartup")
                     .StartNow();
             });
         });

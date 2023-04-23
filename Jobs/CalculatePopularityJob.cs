@@ -7,12 +7,12 @@ using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Jobs;
 
-internal class CalculateRankingsJob : IJob
+internal class CalculatePopularityJob : IJob
 {
     private readonly IMemoryCache cache;
     private readonly GTRContext db;
 
-    public CalculateRankingsJob(IMemoryCache cache, GTRContext db)
+    public CalculatePopularityJob(IMemoryCache cache, GTRContext db)
     {
         this.cache = cache;
         this.db = db;
