@@ -22,10 +22,11 @@
         <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.3" />
         <PackageReference Include="OneOf" Version="3.0.243" />
+        <PackageReference Include="Quartz.AspNetCore" Version="3.6.2" />
         <PackageReference Include="Semver" Version="2.3.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
         <PackageReference Include="SteamWebAPI2" Version="4.4.0" />
-        <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="2.4.0" />
+        <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="2.5.0" />
     </ItemGroup>
 
     <ItemGroup>
