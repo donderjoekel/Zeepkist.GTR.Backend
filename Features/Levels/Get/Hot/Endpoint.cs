@@ -1,7 +1,5 @@
-﻿using System.Data.Common;
-using FastEndpoints;
-using Microsoft.EntityFrameworkCore;
-using TNRD.Zeepkist.GTR.Backend.Database;
+﻿using FastEndpoints;
+using Microsoft.Extensions.Caching.Memory;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
@@ -9,12 +7,12 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Levels.Get.Hot;
 
 internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
 {
-    private readonly GTRContext context;
+    private readonly IMemoryCache cache;
 
     /// <inheritdoc />
-    public Endpoint(GTRContext context)
+    public Endpoint(IMemoryCache cache)
     {
-        this.context = context;
+        this.cache = cache;
     }
 
     /// <inheritdoc />
@@ -27,57 +25,17 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetHotResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(CancellationToken ct)
     {
-        List<LevelsGetHotResponseDTO.Info> infos = new();
-
-        var query = from r in context.Records
-            join l in context.Levels on r.Level equals l.Id
-            where r.DateCreated.Value.Date == DateTime.Today && r.IsValid == true
-            group r by l
-            into g
-            orderby g.Count() descending
-            select new
-            {
-                Level = g.Key,
-                Records = g.Select(r => r)
-            };
-
-        var results = await query.ToListAsync(ct);
-        foreach(var result in results)
+        LevelsGetHotResponseDTO response = new()
         {
-            HashSet<int> userIds = new HashSet<int>();
+            Levels = new List<LevelPopularityResponseModel>()
+        };
 
-            foreach(var record in result.Records)
-            {
-                if (userIds.Contains(record.User!.Value))
-                    continue;
-
-                userIds.Add(record.User!.Value);
-            }
-
-            infos.Add(new LevelsGetHotResponseDTO.Info()
-            {
-                Level = new LevelResponseModel()
-                {
-                    Id = result.Level.Id,
-                    Name = result.Level.Name,
-                    Author = result.Level.Author,
-                    IsValid = result.Level.IsValid,
-                    ThumbnailUrl = result.Level.ThumbnailUrl,
-                    TimeAuthor = result.Level.TimeAuthor,
-                    TimeGold = result.Level.TimeGold,
-                    TimeSilver = result.Level.TimeSilver,
-                    TimeBronze = result.Level.TimeBronze,
-                    UniqueId = result.Level.Uid,
-                    WorkshopId = result.Level.Wid,
-                },
-                RecordsCount = userIds.Count
-            });
+        if (cache.TryGetValue<List<LevelPopularityResponseModel>>("hot",
+                out List<LevelPopularityResponseModel>? cached))
+        {
+            response.Levels = cached!;
         }
 
-        await SendOkAsync(new LevelsGetHotResponseDTO()
-            {
-                Levels = infos.OrderByDescending(x => x.RecordsCount).Take(10).ToList()
-            },
-            ct);
+        await SendOkAsync(response, ct);
     }
 }
