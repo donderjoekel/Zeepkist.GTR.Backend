@@ -5,6 +5,7 @@ using FastEndpoints.Security;
 using FastEndpoints.Swagger;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
+using Quartz;
 using Serilog;
 using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
@@ -13,6 +14,7 @@ using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Options;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
+using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Steam;
 
 namespace TNRD.Zeepkist.GTR.Backend;
@@ -48,6 +50,34 @@ internal class Program
     private static void AddServices(WebApplicationBuilder builder)
     {
         builder.Services.AddMemoryCache();
+
+        builder.Services.AddQuartz(q =>
+        {
+            q.UseMicrosoftDependencyInjectionJobFactory();
+
+            JobKey key = new JobKey("CalculateRankingsJob");
+            q.AddJob<CalculateRankingsJob>(opts=>opts.WithIdentity(key));
+            
+            q.AddTrigger(opts =>
+            {
+                opts.ForJob(key)
+                    .WithIdentity("CalculateRankingsJob-Trigger")
+                    .WithCronSchedule("0 0 * ? * * *");
+            });
+
+            q.AddTrigger(opts =>
+            {
+                opts.ForJob(key)
+                    .WithIdentity("CalculateRankingsJob-OnStartup")
+                    .StartNow();
+            });
+        });
+
+        builder.Services.AddQuartzServer(options =>
+        {
+            options.AwaitApplicationStarted = true;
+            options.WaitForJobsToComplete = true;
+        });
 
         builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
         builder.Services.Configure<DirectusOptions>(builder.Configuration.GetSection("Directus"));

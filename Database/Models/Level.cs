@@ -38,4 +38,21 @@ public partial class Level
     public virtual ICollection<Upvote> Upvotes { get; set; } = new List<Upvote>();
 
     public virtual ICollection<Vote> Votes { get; set; } = new List<Vote>();
+
+    public class EqualityComparer : IEqualityComparer<Level>
+    {
+        public bool Equals(Level? x, Level? y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (ReferenceEquals(x, null)) return false;
+            if (ReferenceEquals(y, null)) return false;
+            if (x.GetType() != y.GetType()) return false;
+            return x.Id == y.Id;
+        }
+
+        public int GetHashCode(Level obj)
+        {
+            return obj.Id;
+        }
+    }
 }
