@@ -203,20 +203,10 @@ public partial class GTRContext : DbContext
             entity.ToTable("users");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.AccessToken)
-                .HasMaxLength(255)
-                .HasColumnName("access_token");
-            entity.Property(e => e.AccessTokenExpiry)
-                .HasMaxLength(255)
-                .HasColumnName("access_token_expiry");
             entity.Property(e => e.DateCreated).HasColumnName("date_created");
             entity.Property(e => e.DateUpdated).HasColumnName("date_updated");
-            entity.Property(e => e.RefreshToken)
-                .HasMaxLength(255)
-                .HasColumnName("refresh_token");
-            entity.Property(e => e.RefreshTokenExpiry)
-                .HasMaxLength(255)
-                .HasColumnName("refresh_token_expiry");
+            entity.Property(e => e.Position).HasColumnName("position");
+            entity.Property(e => e.Score).HasColumnName("score");
             entity.Property(e => e.SteamId)
                 .HasMaxLength(255)
                 .HasColumnName("steam_id");
