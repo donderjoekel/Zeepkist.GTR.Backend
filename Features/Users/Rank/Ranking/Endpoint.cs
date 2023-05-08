@@ -1,7 +1,9 @@
 ﻿using FastEndpoints;
 using FluentResults;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
@@ -9,47 +11,35 @@ using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Users.Rank.Ranking;
 
-internal class Endpoint : Endpoint<UsersRankingGetRequestDTO, UsersRankingResponseDTO>
+internal class Endpoint : Endpoint<GenericIdRequestDTO, UsersRankingResponseDTO>
 {
     private readonly GTRContext context;
-    private readonly IMemoryCache cache;
 
-    public Endpoint(GTRContext context, IMemoryCache cache)
+    public Endpoint(GTRContext context)
     {
         this.context = context;
-        this.cache = cache;
     }
 
     /// <inheritdoc />
     public override void Configure()
     {
         AllowAnonymous();
-        Get("users/ranking");
+        Get("users/ranking/{Id}");
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(UsersRankingGetRequestDTO req, CancellationToken ct)
+    public override async Task HandleAsync(GenericIdRequestDTO req, CancellationToken ct)
     {
-        if (!req.UserId.HasValue && string.IsNullOrEmpty(req.SteamId))
-        {
-            ThrowError("Request needs either a SteamId or UserId");
-        }
+        int amountOfWorldRecords = await (from r in context.Records
+            where r.User == req.Id && r.IsWr
+            orderby r.Id
+            select r).CountAsync(ct);
 
-        List<UsersRankingsResponseDTO.Ranking> rankings = RankUtilities.GetRankings(cache, context);
+        User? user = await (from u in context.Users
+            where u.Id == req.Id
+            select u).FirstOrDefaultAsync(ct);
 
-        UsersRankingsResponseDTO.Ranking? ranking;
-
-        if (req.UserId.HasValue)
-        {
-            ranking = rankings.FirstOrDefault(x => x.User.Id == req.UserId);
-        }
-        else
-        {
-            ranking = rankings.FirstOrDefault(x =>
-                string.Equals(x.User.SteamId, req.SteamId, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (ranking == null)
+        if (user == null)
         {
             await SendNotFoundAsync(ct);
         }
@@ -57,8 +47,9 @@ internal class Endpoint : Endpoint<UsersRankingGetRequestDTO, UsersRankingRespon
         {
             await SendOkAsync(new UsersRankingResponseDTO()
                 {
-                    Position = ranking.Position,
-                    AmountOfWorldRecords = ranking.AmountOfWorldRecords
+                    Position = user.Position ?? -1,
+                    AmountOfWorldRecords = amountOfWorldRecords,
+                    Score = user.Score ?? 0f
                 },
                 ct);
         }
