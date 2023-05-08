@@ -55,22 +55,41 @@ internal class Program
         {
             q.UseMicrosoftDependencyInjectionJobFactory();
 
-            JobKey key = new JobKey("CalculatePopularityJob");
-            q.AddJob<CalculatePopularityJob>(opts=>opts.WithIdentity(key));
-            
-            q.AddTrigger(opts =>
+            void AddPopularityJob()
             {
-                opts.ForJob(key)
-                    .WithIdentity("CalculatePopularityJob-Trigger")
-                    .WithCronSchedule("0 0 * ? * * *");
-            });
+                JobKey key = new JobKey("CalculatePopularityJob");
+                q.AddJob<CalculatePopularityJob>(opts => opts.WithIdentity(key));
 
-            q.AddTrigger(opts =>
+                q.AddTrigger(opts =>
+                {
+                    opts.ForJob(key)
+                        .WithIdentity("CalculatePopularityJob-Trigger")
+                        .WithCronSchedule("0 0 * ? * * *");
+                });
+
+                q.AddTrigger(opts =>
+                {
+                    opts.ForJob(key)
+                        .WithIdentity("CalculatePopularityJob-OnStartup")
+                        .StartNow();
+                });
+            }
+
+            void AddRankingJob()
             {
-                opts.ForJob(key)
-                    .WithIdentity("CalculatePopularityJob-OnStartup")
-                    .StartNow();
-            });
+                JobKey key = new JobKey("CalculateRankingJob");
+                q.AddJob<CalculateRankingJob>(opts => opts.WithIdentity(key));
+
+                q.AddTrigger(opts =>
+                {
+                    opts.ForJob(key)
+                        .WithIdentity("CalculateRankingJob-Trigger")
+                        .WithCronSchedule("0 0 0 ? * * *");
+                });
+            }
+
+            AddPopularityJob();
+            AddRankingJob();
         });
 
         builder.Services.AddQuartzServer(options =>
