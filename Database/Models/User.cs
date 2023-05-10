@@ -16,6 +16,8 @@ public partial class User
 
     public float? Score { get; set; }
 
+    public int? WorldRecords { get; set; }
+
     public virtual ICollection<Auth> Auths { get; set; } = new List<Auth>();
 
     public virtual ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
