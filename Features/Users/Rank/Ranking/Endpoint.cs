@@ -30,11 +30,6 @@ internal class Endpoint : Endpoint<GenericIdRequestDTO, UsersRankingResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(GenericIdRequestDTO req, CancellationToken ct)
     {
-        int amountOfWorldRecords = await (from r in context.Records
-            where r.User == req.Id && r.IsWr
-            orderby r.Id
-            select r).CountAsync(ct);
-
         User? user = await (from u in context.Users
             where u.Id == req.Id
             select u).FirstOrDefaultAsync(ct);
@@ -47,8 +42,8 @@ internal class Endpoint : Endpoint<GenericIdRequestDTO, UsersRankingResponseDTO>
         {
             await SendOkAsync(new UsersRankingResponseDTO()
                 {
-                    Position = user.Position ?? -1,
-                    AmountOfWorldRecords = amountOfWorldRecords,
+                    Position = user.Position ?? 0,
+                    AmountOfWorldRecords = user.WorldRecords ?? 0,
                     Score = user.Score ?? 0f
                 },
                 ct);

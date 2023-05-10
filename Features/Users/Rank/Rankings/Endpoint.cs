@@ -12,12 +12,10 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Users.Rank.Rankings;
 internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersRankingsResponseDTO>
 {
     private readonly GTRContext context;
-    private readonly IMemoryCache cache;
 
-    public Endpoint(GTRContext context, IMemoryCache cache)
+    public Endpoint(GTRContext context)
     {
         this.context = context;
-        this.cache = cache;
     }
 
     /// <inheritdoc />
@@ -45,18 +43,6 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersRankingsResponseDT
 
         foreach (User user in users)
         {
-            string key = $"user_{user.Id}_wr_count";
-
-            if (!cache.TryGetValue(key, out int wrCount))
-            {
-                wrCount = await (from r in context.Records
-                    where r.User == user.Id && r.IsWr
-                    orderby r.Id
-                    select r).CountAsync(ct);
-
-                cache.Set(key, wrCount, TimeSpan.FromMinutes(15));
-            }
-
             rankings.Add(new UsersRankingsResponseDTO.Ranking()
             {
                 User = new UserResponseModel()
@@ -65,9 +51,9 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersRankingsResponseDT
                     SteamId = user.SteamId,
                     SteamName = user.SteamName
                 },
-                Position = user.Position ?? -1,
+                Position = user.Position ?? 0,
                 Score = user.Score ?? 0f,
-                AmountOfWorldRecords = wrCount
+                AmountOfWorldRecords = user.WorldRecords ?? 0
             });
         }
 
