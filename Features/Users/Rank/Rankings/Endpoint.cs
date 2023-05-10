@@ -35,6 +35,7 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersRankingsResponseDT
                 from u in context.Users
                 orderby u.Position
                 select u)
+            .AsNoTracking()
             .Skip(offset)
             .Take(limit)
             .ToListAsync(ct);
@@ -60,7 +61,7 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersRankingsResponseDT
         await SendOkAsync(new UsersRankingsResponseDTO()
             {
                 Rankings = rankings,
-                TotalAmount = await context.Users.CountAsync(ct)
+                TotalAmount = await context.Users.AsNoTracking().CountAsync(ct)
             },
             ct);
     }
