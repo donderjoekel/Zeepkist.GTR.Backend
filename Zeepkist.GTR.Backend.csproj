@@ -18,6 +18,7 @@
         <PackageReference Include="FluentResults" Version="3.15.2" />
         <PackageReference Include="Google.Apis.Drive.v3" Version="1.58.0.2922" />
         <PackageReference Include="Google.Cloud.Storage.V1" Version="4.4.0" />
+        <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.3" />

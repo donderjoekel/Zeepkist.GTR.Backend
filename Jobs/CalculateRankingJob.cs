@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
+﻿using MathNet.Numerics.Statistics;
+using Microsoft.EntityFrameworkCore;
 using Quartz;
 using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.Backend.Database.Models;
@@ -20,46 +20,67 @@ internal class CalculateRankingJob : IJob
     {
         CancellationToken ct = context.CancellationToken;
         List<User> users = await db.Users.AsNoTracking().OrderBy(x => x.Id).ToListAsync(ct);
-        Dictionary<int, double> userToScore = users.ToDictionary(x => x.Id, y => 0.0);
-        int totalUsers = users.Count;
+        Dictionary<int, UserData> userToData = users.ToDictionary(x => x.Id, y => new UserData());
 
-        List<Level> levels = await db.Levels.AsNoTracking().ToListAsync(cancellationToken: ct);
+        List<Level> levels = await (from l in db.Levels.AsNoTracking()
+            orderby l.Id descending
+            select l).ToListAsync(ct);
+
         foreach (Level level in levels)
         {
-            IOrderedQueryable<Record> records = from r in db.Records.AsNoTracking()
+            List<Record> records = await (from r in db.Records.AsNoTracking()
                 where r.Level == level.Id && (r.IsBest || r.IsWr)
                 orderby r.Time
-                select r;
+                select r).ToListAsync(ct);
 
-            if (await records.CountAsync(ct) <= 1)
+            int recordCount = records.Count;
+
+            if (recordCount <= 1)
                 continue;
 
-            List<Record> rs = await records.ToListAsync(ct);
-            int usersOnLevel = rs.Count;
+            IEnumerable<float> times = records.Select(x => x.Time!.Value);
+            double median = times.Median();
 
-            for (int i = 0; i < rs.Count; i++)
+            for (int i = 0; i < recordCount; i++)
             {
-                Record record = rs[i];
+                Record record = records[i];
 
-                int rank = i + 1;
-                double score = (1 - (rank - 1.0) / (totalUsers - 1)) * (1 + Math.Log2(usersOnLevel));
-                userToScore[record.User!.Value] += score;
+                double points = Math.Max(0, 1000 * (1 - ((double)record.Time! - median) / median));
+                int user = record.User!.Value;
+                userToData[user].TotalPoints += points;
+                userToData[user].CompletedLevels++;
+                double positionScore = Math.Max(0, 100 - 50 * ((i + 1) - 1) / (recordCount - 1));
+                userToData[user].PositionScore += positionScore;
             }
         }
 
-        List<KeyValuePair<int, double>> orderedScoring = userToScore
-            .OrderByDescending(x => x.Value)
-            .ThenBy(x => x.Key)
-            .ToList();
+        List<KeyValuePair<int, UserData>> sortedUsers = userToData.OrderByDescending(x => x.Value.TotalScore).ToList();
 
-        foreach (KeyValuePair<int, double> kvp in orderedScoring)
+        List<User> trackedUsers = await db.Users.ToListAsync(ct);
+        foreach (User user in trackedUsers)
         {
-            int userId = kvp.Key;
-            User user = await db.Users.SingleAsync(x => x.Id == userId, ct);
-            user.Position = orderedScoring.IndexOf(kvp) + 1;
-            user.Score = (float)kvp.Value;
+            if (!userToData.TryGetValue(user.Id, out UserData? data))
+                continue;
+
+            int index = sortedUsers.FindIndex(x => x.Key == user.Id);
+            if (index == -1)
+                continue;
+
+            user.Score = double.IsNaN(data.TotalScore) ? 0 : (float)data.TotalScore;
+            user.Position = index + 1;
         }
-        
+
         await db.SaveChangesAsync(ct);
+    }
+
+    private class UserData
+    {
+        public int CompletedLevels { get; set; }
+        public double TotalPoints { get; set; }
+        public double PositionScore { get; set; }
+
+        public double AveragePoints => TotalPoints / CompletedLevels;
+        public double BonusScore => PositionScore / CompletedLevels;
+        public double TotalScore => AveragePoints + BonusScore;
     }
 }
