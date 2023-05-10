@@ -54,7 +54,7 @@ internal class Program
         builder.Services.AddQuartz(q =>
         {
             q.UseMicrosoftDependencyInjectionJobFactory();
-            CreateAndAddJob<CalculatePopularityJob>(q, "CalculatePopularity", "0 0 * ? * * *", false);
+            CreateAndAddJob<CalculatePopularityJob>(q, "CalculatePopularity", "0 0 * ? * * *", true);
             CreateAndAddJob<CalculateRankingJob>(q, "CalculateRanking", "0 0 0 ? * * *", false);
             CreateAndAddJob<CalculateWorldRecordsJob>(q, "CalculateWorldRecords", "0 0/15 0 ? * * *", true);
         });
