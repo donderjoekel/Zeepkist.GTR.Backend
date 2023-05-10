@@ -54,42 +54,9 @@ internal class Program
         builder.Services.AddQuartz(q =>
         {
             q.UseMicrosoftDependencyInjectionJobFactory();
-
-            void AddPopularityJob()
-            {
-                JobKey key = new JobKey("CalculatePopularityJob");
-                q.AddJob<CalculatePopularityJob>(opts => opts.WithIdentity(key));
-
-                q.AddTrigger(opts =>
-                {
-                    opts.ForJob(key)
-                        .WithIdentity("CalculatePopularityJob-Trigger")
-                        .WithCronSchedule("0 0 * ? * * *");
-                });
-
-                q.AddTrigger(opts =>
-                {
-                    opts.ForJob(key)
-                        .WithIdentity("CalculatePopularityJob-OnStartup")
-                        .StartNow();
-                });
-            }
-
-            void AddRankingJob()
-            {
-                JobKey key = new JobKey("CalculateRankingJob");
-                q.AddJob<CalculateRankingJob>(opts => opts.WithIdentity(key));
-
-                q.AddTrigger(opts =>
-                {
-                    opts.ForJob(key)
-                        .WithIdentity("CalculateRankingJob-Trigger")
-                        .WithCronSchedule("0 0 0 ? * * *");
-                });
-            }
-
-            AddPopularityJob();
-            AddRankingJob();
+            CreateAndAddJob<CalculatePopularityJob>(q, "CalculatePopularity", "0 0 * ? * * *", false);
+            CreateAndAddJob<CalculateRankingJob>(q, "CalculateRanking", "0 0 0 ? * * *", false);
+            CreateAndAddJob<CalculateWorldRecordsJob>(q, "CalculateWorldRecords", "0 0/15 0 ? * * *", true);
         });
 
         builder.Services.AddQuartzServer(options =>
@@ -115,16 +82,7 @@ internal class Program
         builder.Services.AddSwaggerDoc(b => { b.Title = "Zeepkist GTR"; }, addJWTBearerAuth: false);
 
         builder.Services.AddHttpClient("directus",
-            (provider, client) =>
-            {
-                DirectusOptions options = provider.GetRequiredService<IOptions<DirectusOptions>>().Value;
-
-                string baseUrl = $"http://{options.BaseUrl}:{options.Port}";
-
-                client.BaseAddress = new Uri(baseUrl);
-                client.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", options.Token);
-            });
+            ConfigureDirectusClient);
 
         builder.Services.AddSingleton<IDirectusClient, DirectusClient>();
         builder.Services.AddSingleton<IGoogleUploadService, CloudStorageUploadService>();
@@ -134,22 +92,6 @@ internal class Program
             SteamOptions steamOptions = provider.GetRequiredService<IOptions<SteamOptions>>().Value;
             return new SteamWebInterfaceFactory(steamOptions.Token);
         });
-    }
-
-    private static string GetJwtToken(WebApplicationBuilder builder)
-    {
-        IConfigurationSection section = builder.Configuration.GetSection("Auth");
-        if (section == null)
-            throw new NullReferenceException("Auth section is null");
-
-        AuthOptions authOptions = section.Get<AuthOptions>();
-        if (authOptions == null)
-            throw new NullReferenceException("AuthOptions is null");
-
-        if (string.IsNullOrEmpty(authOptions.SigningKey))
-            throw new NullReferenceException("SigningKey is null or empty");
-
-        return authOptions.SigningKey;
     }
 
     private static void ConfigureApp(WebApplication app)
@@ -183,5 +125,60 @@ internal class Program
             x.Path = string.Empty;
             x.DocumentTitle = "Zeepkist GTR";
         });
+    }
+
+    private static void CreateAndAddJob<TJob>(
+        IServiceCollectionQuartzConfigurator q,
+        string name,
+        string cronSchedule,
+        bool runAtStartup
+    )
+        where TJob : IJob
+    {
+        JobKey key = new JobKey($"{name}Job");
+        q.AddJob<TJob>(opts => opts.WithIdentity(key));
+
+        q.AddTrigger(opts =>
+        {
+            opts.ForJob(key)
+                .WithIdentity($"{name}Job-Trigger")
+                .WithCronSchedule(cronSchedule);
+        });
+
+        if (runAtStartup)
+        {
+            q.AddTrigger(opts =>
+            {
+                opts.ForJob(key)
+                    .WithIdentity($"{name}Job-OnStartup")
+                    .StartNow();
+            });
+        }
+    }
+
+    private static string GetJwtToken(WebApplicationBuilder builder)
+    {
+        IConfigurationSection section = builder.Configuration.GetSection("Auth");
+        if (section == null)
+            throw new NullReferenceException("Auth section is null");
+
+        AuthOptions authOptions = section.Get<AuthOptions>();
+        if (authOptions == null)
+            throw new NullReferenceException("AuthOptions is null");
+
+        if (string.IsNullOrEmpty(authOptions.SigningKey))
+            throw new NullReferenceException("SigningKey is null or empty");
+
+        return authOptions.SigningKey;
+    }
+
+    private static void ConfigureDirectusClient(IServiceProvider provider, HttpClient client)
+    {
+        DirectusOptions options = provider.GetRequiredService<IOptions<DirectusOptions>>().Value;
+
+        string baseUrl = $"http://{options.BaseUrl}:{options.Port}";
+
+        client.BaseAddress = new Uri(baseUrl);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.Token);
     }
 }
