@@ -54,7 +54,7 @@ internal class CalculateHotLevelsJob : IJob
                 Level = x.Key.ToResponseModel(),
                 RecordsCount = x.Value
             })
-            .Take(25)
+            .Take(10)
             .ToList();
 
         cache.Set("hot", ordered);
