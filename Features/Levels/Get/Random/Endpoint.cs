@@ -46,6 +46,6 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, LevelsGetRandomResponse
 
     private static int Max(int? a, int b, int def)
     {
-        return a == null ? def : Math.Max(a.Value, b);
+        return a == null ? def : Math.Min(a.Value, b);
     }
 }
