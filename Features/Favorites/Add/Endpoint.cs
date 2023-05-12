@@ -1,5 +1,9 @@
 ﻿using FastEndpoints;
 using FluentResults;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Api;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
@@ -11,12 +15,12 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Favorites.Add;
 
 internal class Endpoint : Endpoint<FavoritesAddRequestDTO, GenericIdResponseDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -34,48 +38,25 @@ internal class Endpoint : Endpoint<FavoritesAddRequestDTO, GenericIdResponseDTO>
             ThrowError("Unable to find user id!");
         }
 
-        FavoritesApi api = new FavoritesApi(client);
+        Favorite? favorite = await (from f in context.Favorites.AsNoTracking()
+            where f.User == userId && f.Level == req.LevelId
+            select f).FirstOrDefaultAsync(ct);
 
-        Result<DirectusGetMultipleResponse<FavoriteModel>> getResult = await api.Get(filter =>
-            {
-                filter
-                    .WithLevel(req.LevelId)
-                    .WithUser(userId);
-            },
-            ct);
-
-        if (getResult.IsFailed)
+        if (favorite != null)
         {
-            Logger.LogCritical("Unable to get favorite: {Result}", getResult.ToString());
-            ThrowError("Unable to get favorite");
-        }
-
-        if (getResult.Value.HasItems)
-        {
-            await SendOkAsync(ct);
+            await SendOkAsync(new GenericIdResponseDTO(favorite.Id), ct);
             return;
         }
 
-        Result<int> postResult = await api.Post(builder =>
+        EntityEntry<Favorite> entity = await context.Favorites.AddAsync(new Favorite()
             {
-                builder
-                    .WithUser(userId)
-                    .WithLevel(req.LevelId);
+                User = userId,
+                Level = req.LevelId,
+                DateCreated = DateTime.UtcNow
             },
             ct);
 
-        if (postResult.IsSuccess)
-        {
-            await SendOkAsync(new GenericIdResponseDTO()
-                {
-                    Id = postResult.Value
-                },
-                ct);
-        }
-        else
-        {
-            Logger.LogCritical("Failed to post favorite: {Result}", postResult.ToString());
-            ThrowError("Failed to post favorite");
-        }
+        await context.SaveChangesAsync(ct);
+        await SendOkAsync(new GenericIdResponseDTO(entity.Entity.Id), ct);
     }
 }

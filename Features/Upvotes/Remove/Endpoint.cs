@@ -1,5 +1,8 @@
 ﻿using FastEndpoints;
 using FluentResults;
+using Microsoft.EntityFrameworkCore;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Api;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
@@ -8,25 +11,23 @@ using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Upvotes.Remove;
 
-internal class Endpoint : Endpoint<UpvotesRemoveRequestDTO>
+internal class Endpoint : Endpoint<GenericIdRequestDTO>
 {
-    private readonly IDirectusClient client;
-    private readonly UpvotesApi api;
+    private readonly GTRContext context;
 
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
-        api = new UpvotesApi(client);
+        this.context = context;
     }
 
     /// <inheritdoc />
     public override void Configure()
     {
-        Delete("upvotes");
+        Delete("upvotes/{Id}");
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(UpvotesRemoveRequestDTO req, CancellationToken ct)
+    public override async Task HandleAsync(GenericIdRequestDTO req, CancellationToken ct)
     {
         if (!this.TryGetUserId(out int userId))
         {
@@ -34,81 +35,18 @@ internal class Endpoint : Endpoint<UpvotesRemoveRequestDTO>
             ThrowError("Unable to find user id!");
         }
 
-        if (req.Id.HasValue)
-        {
-            await RemoveById(userId, req.Id.Value, ct);
-        }
-        else if (req.LevelId.HasValue)
-        {
-            await RemoveByLevelId(userId, req.LevelId.Value, ct);
-        }
-    }
+        Upvote? upvote = await (from u in context.Upvotes.AsNoTracking()
+            where u.Id == req.Id && u.User == userId
+            select u).FirstOrDefaultAsync(ct);
 
-    private async Task RemoveById(int userId, int id, CancellationToken ct)
-    {
-        Result<UpvoteModel?> getResult = await api.GetById(id, ct);
-
-        if (getResult.IsFailed)
-        {
-            Logger.LogError("Failed to get upvote: {Result}", getResult.ToString());
-            ThrowError("Failed to get upvote");
-        }
-
-        if (getResult.Value == null)
+        if (upvote == null)
         {
             await SendNotFoundAsync(ct);
             return;
         }
 
-        int upvoteUserId = getResult.Value.User.Match(i => i, m => m.Id);
-
-        if (userId != upvoteUserId)
-        {
-            await SendForbiddenAsync(ct);
-            return;
-        }
-
-        Result deleteResult = await api.Delete(id, ct);
-
-        if (deleteResult.IsFailed)
-        {
-            Logger.LogError("Failed to delete upvote: {Result}", deleteResult.ToString());
-            ThrowError("Failed to delete upvote");
-        }
-
-        await SendOkAsync(ct);
-    }
-
-    private async Task RemoveByLevelId(int userId, int levelId, CancellationToken ct)
-    {
-        Result<DirectusGetMultipleResponse<UpvoteModel>> getResult = await api.Get(filter =>
-            {
-                filter
-                    .WithUserId(userId)
-                    .WithLevelId(levelId);
-            },
-            ct);
-
-        if (getResult.IsFailed)
-        {
-            Logger.LogError("Failed to get upvote: {Result}", getResult.ToString());
-            ThrowError("Failed to get upvote");
-        }
-
-        if (!getResult.Value.HasItems)
-        {
-            await SendNotFoundAsync(ct);
-            return;
-        }
-
-        Result deleteResult = await api.Delete(getResult.Value.FirstItem!.Id, ct);
-
-        if (deleteResult.IsFailed)
-        {
-            Logger.LogCritical("Failed to delete upvote: {Result}", deleteResult.ToString());
-            ThrowError("Failed to delete upvote");
-        }
-
+        context.Upvotes.Remove(upvote);
+        await context.SaveChangesAsync(ct);
         await SendOkAsync(ct);
     }
 }

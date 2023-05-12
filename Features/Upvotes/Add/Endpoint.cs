@@ -1,5 +1,9 @@
 ﻿using FastEndpoints;
 using FluentResults;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Api;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
@@ -11,12 +15,12 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Upvotes.Add;
 
 internal class Endpoint : Endpoint<UpvotesAddRequestDTO, GenericIdResponseDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -34,46 +38,25 @@ internal class Endpoint : Endpoint<UpvotesAddRequestDTO, GenericIdResponseDTO>
             ThrowError("Unable to find user id!");
         }
 
-        UpvotesApi api = new UpvotesApi(client);
+        Upvote? upvote = await (from f in context.Upvotes.AsNoTracking()
+            where f.User == userId && f.Level == req.LevelId
+            select f).FirstOrDefaultAsync(ct);
 
-        Result<DirectusGetMultipleResponse<UpvoteModel>> getResult = await api.Get(filter =>
-            {
-                filter
-                    .WithLevelId(req.LevelId)
-                    .WithUserId(userId);
-            },
-            ct);
-
-        if (getResult.IsFailed)
+        if (upvote != null)
         {
-            Logger.LogCritical("Unable to get upvote: {Result}", getResult.ToString());
-            ThrowError("Unable to get upvote");
-        }
-
-        if (getResult.Value.HasItems)
-        {
-            await SendOkAsync(new GenericIdResponseDTO()
-                {
-                    Id = getResult.Value.FirstItem!.Id
-                },
-                ct);
+            await SendOkAsync(new GenericIdResponseDTO(upvote.Id), ct);
             return;
         }
 
-        Result<int> postResult = await api.Post(builder =>
+        EntityEntry<Upvote> entity = await context.Upvotes.AddAsync(new Upvote()
             {
-                builder
-                    .WithUser(userId)
-                    .WithLevel(req.LevelId);
+                User = userId,
+                Level = req.LevelId,
+                DateCreated = DateTime.UtcNow
             },
             ct);
 
-        if (postResult.IsFailed)
-        {
-            Logger.LogError("Failed to post upvote: {Result}", postResult.ToString());
-            ThrowError("Failed to post upvote");
-        }
-
-        await SendOkAsync(new GenericIdResponseDTO(postResult.Value), ct);
+        await context.SaveChangesAsync(ct);
+        await SendOkAsync(new GenericIdResponseDTO(entity.Entity.Id), ct);
     }
 }
