@@ -213,6 +213,9 @@ public partial class GTRContext : DbContext
             entity.Property(e => e.SteamName)
                 .HasMaxLength(255)
                 .HasColumnName("steam_name");
+            entity.Property(e => e.DiscordId)
+                .HasMaxLength(255)
+                .HasColumnName("discord_id");
             entity.Property(e => e.WorldRecords).HasColumnName("world_records");
         });
 

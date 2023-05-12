@@ -11,7 +11,9 @@ public partial class User
     public string? SteamId { get; set; }
 
     public string? SteamName { get; set; }
-    
+
+    public string? DiscordId { get; set; }
+
     public int? Position { get; set; }
 
     public float? Score { get; set; }
