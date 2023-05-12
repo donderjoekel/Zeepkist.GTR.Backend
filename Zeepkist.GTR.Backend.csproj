@@ -12,26 +12,23 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FastEndpoints" Version="5.8.0" />
-        <PackageReference Include="FastEndpoints.Security" Version="5.8.0" />
-        <PackageReference Include="FastEndpoints.Swagger" Version="5.8.0" />
-        <PackageReference Include="FluentResults" Version="3.15.2" />
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.58.0.2922" />
-        <PackageReference Include="Google.Cloud.Storage.V1" Version="4.4.0" />
-        <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.3" />
-        <PackageReference Include="OneOf" Version="3.0.243" />
-        <PackageReference Include="Quartz.AspNetCore" Version="3.6.2" />
-        <PackageReference Include="Semver" Version="2.3.0" />
-        <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
-        <PackageReference Include="SteamWebAPI2" Version="4.4.0" />
-        <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="2.6.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Condition="'$(Configuration)' == 'Debug'" Include="..\Zeepkist.GTR.DTOs\Zeepkist.GTR.DTOs.csproj" />
+        <PackageReference Include="FastEndpoints" Version="5.8.0"/>
+        <PackageReference Include="FastEndpoints.Security" Version="5.8.0"/>
+        <PackageReference Include="FastEndpoints.Swagger" Version="5.8.0"/>
+        <PackageReference Include="FluentResults" Version="3.15.2"/>
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.58.0.2922"/>
+        <PackageReference Include="Google.Cloud.Storage.V1" Version="4.4.0"/>
+        <PackageReference Include="MathNet.Numerics" Version="5.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.3"/>
+        <PackageReference Include="OneOf" Version="3.0.243"/>
+        <PackageReference Include="Quartz.AspNetCore" Version="3.6.2"/>
+        <PackageReference Include="Semver" Version="2.3.0"/>
+        <PackageReference Include="Serilog.AspNetCore" Version="6.1.0"/>
+        <PackageReference Include="SteamWebAPI2" Version="4.4.0"/>
+        <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="2.7.0"/>
+        <ProjectReference Condition="'$(Configuration)' == 'Debug'" Include="..\Zeepkist.GTR.DTOs\Zeepkist.GTR.DTOs.csproj"/>
     </ItemGroup>
 
 </Project>
