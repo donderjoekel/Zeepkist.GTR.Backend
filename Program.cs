@@ -55,7 +55,7 @@ internal class Program
         {
             q.UseMicrosoftDependencyInjectionJobFactory();
             CreateAndAddJob<CalculateRankingJob>(q, "CalculateRanking", "0 * 0/12 ? * * *", false);
-            CreateAndAddJob<CalculateWorldRecordsJob>(q, "CalculateWorldRecords", "0 0/15 * ? * * *", true);
+            CreateAndAddJob<CalculateWorldRecordsJob>(q, "CalculateWorldRecords", "0 0/15 * ? * * *", false);
             CreateAndAddJob<CalculateHotLevelsJob>(q, "CalculateHotLevels", "0 0/15 * ? * * *", true);
             CreateAndAddJob<CalculatePopularLevelsJob>(q, "CalculatePopularLevels", "0 0 * ? * * *", true);
         });
