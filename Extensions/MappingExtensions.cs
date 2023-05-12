@@ -22,4 +22,15 @@ internal static class MappingExtensions
             WorkshopId = level.Wid
         };
     }
+
+    public static UserResponseModel ToResponseModel(this User user)
+    {
+        return new UserResponseModel
+        {
+            Id = user.Id,
+            DiscordId = user.DiscordId,
+            SteamId = user.SteamId,
+            SteamName = user.SteamName
+        };
+    }
 }
