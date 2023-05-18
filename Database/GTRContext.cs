@@ -113,6 +113,8 @@ public partial class GTRContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("name");
+            entity.Property(e => e.Points).HasColumnName("points");
+            entity.Property(e => e.Rank).HasColumnName("rank");
             entity.Property(e => e.ThumbnailUrl)
                 .HasMaxLength(2048)
                 .HasColumnName("thumbnail_url");

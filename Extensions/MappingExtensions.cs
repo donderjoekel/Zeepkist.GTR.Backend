@@ -19,7 +19,9 @@ internal static class MappingExtensions
             TimeGold = level.TimeGold,
             TimeSilver = level.TimeSilver,
             UniqueId = level.Uid,
-            WorkshopId = level.Wid
+            WorkshopId = level.Wid,
+            Points = level.Points,
+            Rank = level.Rank
         };
     }
 

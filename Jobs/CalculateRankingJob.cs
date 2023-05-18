@@ -1,5 +1,4 @@
-﻿using MathNet.Numerics.Statistics;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Quartz;
 using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.Backend.Database.Models;
@@ -8,6 +7,13 @@ namespace TNRD.Zeepkist.GTR.Backend.Jobs;
 
 internal class CalculateRankingJob : IJob
 {
+    private record LevelStats(int Level, int TimesBeaten, int UsersBeaten)
+    {
+        public int Points => TimesBeaten + UsersBeaten;
+    }
+
+    private record UserPoints(int User, int Points);
+
     private readonly GTRContext db;
 
     public CalculateRankingJob(GTRContext db)
@@ -18,69 +24,139 @@ internal class CalculateRankingJob : IJob
     /// <inheritdoc />
     public async Task Execute(IJobExecutionContext context)
     {
-        CancellationToken ct = context.CancellationToken;
-        List<User> users = await db.Users.AsNoTracking().OrderBy(x => x.Id).ToListAsync(ct);
-        Dictionary<int, UserData> userToData = users.ToDictionary(x => x.Id, y => new UserData());
+        List<LevelStats> levelStats = await CalculateLevelStats(context.CancellationToken);
+        await AssignLevelStats(levelStats, context.CancellationToken);
+        List<UserPoints> userPoints = await CalculateUserPoints(levelStats, context.CancellationToken);
+        await AssignUserPoints(userPoints, context.CancellationToken);
+    }
 
-        List<Level> levels = await (from l in db.Levels.AsNoTracking()
-            orderby l.Id descending
-            select l).ToListAsync(ct);
+    private async Task<List<LevelStats>> CalculateLevelStats(CancellationToken ct)
+    {
+        List<LevelStats> stats = new();
 
-        foreach (Level level in levels)
-        {
-            List<Record> records = await (from r in db.Records.AsNoTracking()
-                where r.Level == level.Id && (r.IsBest || r.IsWr)
-                orderby r.Time
-                select r).ToListAsync(ct);
-
-            int recordCount = records.Count;
-
-            if (recordCount <= 1)
-                continue;
-
-            IEnumerable<float> times = records.Select(x => x.Time!.Value);
-            double median = times.Median();
-
-            for (int i = 0; i < recordCount; i++)
+        var items = await (from r in db.Records.AsNoTracking()
+            orderby r.Id
+            group r by r.Level
+            into g
+            orderby g.Key
+            select new
             {
-                Record record = records[i];
+                Level = g.Key,
+                Records = g.ToList()
+            }).ToListAsync(ct);
 
-                double points = Math.Max(0, 1000 * (1 - ((double)record.Time! - median) / median));
-                int user = record.User!.Value;
-                userToData[user].TotalPoints += points;
-                userToData[user].CompletedLevels++;
-                double positionScore = Math.Max(0, 100 - 50 * ((i + 1) - 1) / (recordCount - 1));
-                userToData[user].PositionScore += positionScore;
+        foreach (var item in items)
+        {
+            HashSet<int> users = new HashSet<int>();
+            float fastestTime = float.MaxValue;
+            int timesBeaten = 0;
+
+            foreach (Record record in item.Records.OrderBy(x => x.DateCreated))
+            {
+                if (!users.Contains(record.User!.Value))
+                    users.Add(record.User.Value);
+
+                if (record.Time < fastestTime)
+                {
+                    fastestTime = record.Time.Value;
+                    timesBeaten++;
+                }
             }
+
+            stats.Add(new(item.Level.Value, timesBeaten, users.Count));
         }
 
-        List<KeyValuePair<int, UserData>> sortedUsers = userToData.OrderByDescending(x => x.Value.TotalScore).ToList();
+        return stats;
+    }
 
-        List<User> trackedUsers = await db.Users.ToListAsync(ct);
-        foreach (User user in trackedUsers)
+    private async Task AssignLevelStats(List<LevelStats> levelStats, CancellationToken ct)
+    {
+        List<Level> levels = await (from l in db.Levels
+            orderby l.Id
+            select l).ToListAsync(ct);
+
+        List<LevelStats> ordered = levelStats.OrderByDescending(x => x.Points).ToList();
+
+        for (int i = 0; i < ordered.Count; i++)
         {
-            if (!userToData.TryGetValue(user.Id, out UserData? data))
-                continue;
+            LevelStats levelStat = ordered[i];
+            Level level = levels.First(x => x.Id == levelStat.Level);
 
-            int index = sortedUsers.FindIndex(x => x.Key == user.Id);
-            if (index == -1)
-                continue;
-
-            user.Score = double.IsNaN(data.TotalScore) ? 0 : (float)data.TotalScore;
-            user.Position = index + 1;
+            level.Rank = i + 1;
+            level.Points = levelStat.Points;
         }
 
         await db.SaveChangesAsync(ct);
     }
 
-    private class UserData
+    private async Task<List<UserPoints>> CalculateUserPoints(List<LevelStats> levelStats, CancellationToken ct)
     {
-        public int CompletedLevels { get; set; }
-        public double TotalPoints { get; set; }
-        public double PositionScore { get; set; }
+        Dictionary<int, int> userToPoints = new();
 
-        public double AveragePoints => TotalPoints / CompletedLevels;
-        public double BonusScore => PositionScore / CompletedLevels;
-        public double TotalScore => AveragePoints + BonusScore;
+        var items = await (from r in db.Records.AsNoTracking()
+            where r.IsBest
+            group r by r.Level
+            into g
+            orderby g.Key
+            select new
+            {
+                Level = g.Key,
+                Records = g.ToList()
+            }).ToListAsync(ct);
+
+        foreach (var item in items)
+        {
+            List<Record> records = item.Records.OrderBy(x => x.Time!.Value).ToList();
+            for (int i = 0; i < records.Count; i++)
+            {
+                Record record = records[i];
+                int rank = i + 1;
+                CalculatePercentageYield(rank);
+                LevelStats stats = levelStats.First(x => x.Level == record.Level);
+                double percentage = CalculatePercentageYield(rank);
+                int points = (int)Math.Floor(percentage * stats.Points / 100d);
+                int user = record.User!.Value;
+                userToPoints.TryAdd(user, 0);
+                userToPoints[user] += points;
+            }
+        }
+
+        return userToPoints
+            .OrderByDescending(x => x.Value)
+            .Select(x => new UserPoints(x.Key, x.Value))
+            .ToList();
+    }
+
+    private static double CalculatePercentageYield(int position)
+    {
+        switch (position)
+        {
+            case 1:
+                return 100;
+            case >= 25:
+                return 5;
+            default:
+            {
+                double percentage = Math.Round(100 * Math.Exp(-0.15 * (position - 1)));
+                return Math.Max(percentage, 5);
+            }
+        }
+    }
+
+    private async Task AssignUserPoints(List<UserPoints> userPoints, CancellationToken ct)
+    {
+        List<User> users = await (from u in db.Users
+            orderby u.Id
+            select u).ToListAsync(ct);
+
+        for (int i = 0; i < userPoints.Count; i++)
+        {
+            UserPoints userPoint = userPoints[i];
+            User user = users.First(x => x.Id == userPoint.User);
+            user.Position = i + 1;
+            user.Score = userPoint.Points;
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 }

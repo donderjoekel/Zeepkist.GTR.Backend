@@ -30,6 +30,10 @@ public partial class Level
 
     public string? ThumbnailUrl { get; set; }
 
+    public int? Rank { get; set; }
+
+    public int? Points { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
