@@ -9,6 +9,7 @@ using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
+using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Submit;
@@ -33,12 +34,19 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
     private readonly IDirectusClient client;
     private readonly IGoogleUploadService googleUploadService;
     private readonly GTRContext context;
+    private readonly IRabbitPublisher publisher;
 
-    public Endpoint(IDirectusClient client, IGoogleUploadService googleUploadService, GTRContext context)
+    public Endpoint(
+        IDirectusClient client,
+        IGoogleUploadService googleUploadService,
+        GTRContext context,
+        IRabbitPublisher publisher
+    )
     {
         this.client = client;
         this.googleUploadService = googleUploadService;
         this.context = context;
+        this.publisher = publisher;
     }
 
     /// <inheritdoc />
@@ -62,12 +70,12 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             select r;
 
         Record? existingRecord = await queryable.FirstOrDefaultAsync(ct);
-        if (existingRecord == null) 
+        if (existingRecord == null)
             return false;
 
         TimeSpan a = DateTime.Now - existingRecord.DateCreated!.Value;
         TimeSpan b = DateTime.UtcNow - existingRecord.DateCreated!.Value;
-            
+
         return a < TimeSpan.FromMinutes(1) || b < TimeSpan.FromMinutes(1);
     }
 
@@ -153,6 +161,17 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
                 DateUpdated = data.DateUpdated
             },
             cancellation: ct);
+
+        publisher.Publish(new PublishableRecord
+        {
+            Id = data.Id,
+            User = data.User.AsT1.Id,
+            Level = data.Level.AsT1.Id,
+            Time = data.Time,
+            IsValid = data.IsValid,
+            IsBest = updateRecordsResult.Value.IsBest,
+            IsWorldRecord = updateRecordsResult.Value.IsWorldRecord
+        });
     }
 
     private async Task<Result<UploadDataResult>> UploadData(
