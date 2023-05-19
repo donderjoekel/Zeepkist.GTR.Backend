@@ -15,6 +15,7 @@ using TNRD.Zeepkist.GTR.Backend.Directus.Options;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
 using TNRD.Zeepkist.GTR.Backend.Jobs;
+using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Backend.Steam;
 
 namespace TNRD.Zeepkist.GTR.Backend;
@@ -70,6 +71,7 @@ internal class Program
         builder.Services.Configure<DirectusOptions>(builder.Configuration.GetSection("Directus"));
         builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("Steam"));
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
+        builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("Rabbit"));
 
         builder.Services.AddNpgsql<GTRContext>(builder.Configuration["Database:ConnectionString"]);
 
@@ -93,6 +95,9 @@ internal class Program
             SteamOptions steamOptions = provider.GetRequiredService<IOptions<SteamOptions>>().Value;
             return new SteamWebInterfaceFactory(steamOptions.Token);
         });
+
+        builder.Services.AddSingleton<IRabbitPublisher, RabbitPublisher>();
+        builder.Services.AddHostedService<RabbitHostedService>();
     }
 
     private static void ConfigureApp(WebApplication app)
