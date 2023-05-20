@@ -170,7 +170,12 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             Time = data.Time,
             IsValid = data.IsValid,
             IsBest = updateRecordsResult.Value.IsBest,
-            IsWorldRecord = updateRecordsResult.Value.IsWorldRecord
+            IsWorldRecord = updateRecordsResult.Value.IsWorldRecord,
+            Splits = string.IsNullOrEmpty(data.Splits)
+                ? Array.Empty<float>()
+                : data.Splits.Split('|').Select(float.Parse).ToArray(),
+            GhostUrl = data.GhostUrl,
+            ScreenshotUrl = data.ScreenshotUrl,
         });
     }
 

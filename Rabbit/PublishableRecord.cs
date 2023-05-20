@@ -9,4 +9,7 @@ public class PublishableRecord
     public bool IsValid { get; set; }
     public bool IsBest { get; set; }
     public bool IsWorldRecord { get; set; }
+    public float[]? Splits { get; set; }
+    public string GhostUrl { get; set; } = null!;
+    public string ScreenshotUrl { get; set; } = null!;
 }
