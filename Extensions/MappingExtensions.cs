@@ -32,7 +32,10 @@ internal static class MappingExtensions
             Id = user.Id,
             DiscordId = user.DiscordId,
             SteamId = user.SteamId,
-            SteamName = user.SteamName
+            SteamName = user.SteamName,
+            // Bit hacky, should probably just fix the backend to use integer instead of float
+            Score = user.Score.HasValue ? (int)Math.Floor(user.Score.Value) : 0,
+            Position = user.Position
         };
     }
 }
