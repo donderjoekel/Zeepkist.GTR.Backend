@@ -38,4 +38,20 @@ internal static class MappingExtensions
             Position = user.Position
         };
     }
+
+    public static FavoriteResponseModel ToResponseModel(
+        this Favorite favorite,
+        LevelResponseModel? level = null,
+        UserResponseModel? user = null
+    )
+    {
+        return new FavoriteResponseModel()
+        {
+            Id = favorite.Id,
+            Level = level ?? favorite.LevelNavigation?.ToResponseModel() ??
+                new LevelResponseModel { Id = favorite.Level!.Value },
+            User = user ?? favorite.UserNavigation?.ToResponseModel() ??
+                new UserResponseModel { Id = favorite.User!.Value },
+        };
+    }
 }

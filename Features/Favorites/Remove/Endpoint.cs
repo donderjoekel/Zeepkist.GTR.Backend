@@ -31,9 +31,9 @@ internal class Endpoint : Endpoint<GenericIdRequestDTO>
             ThrowError("Unable to find user id!");
         }
 
-        Favorite? favorite = await (from f in context.Favorites.AsNoTracking()
-            where f.Id == req.Id && f.User == userId
-            select f).FirstOrDefaultAsync(ct);
+        Favorite? favorite = await context.Favorites.AsNoTracking()
+            .Where(f => f.Id == req.Id && f.User == userId)
+            .FirstOrDefaultAsync(ct);
 
         if (favorite == null)
         {

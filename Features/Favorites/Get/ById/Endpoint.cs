@@ -1,10 +1,8 @@
-﻿using System.Net;
-using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
+﻿using FastEndpoints;
+using Microsoft.EntityFrameworkCore;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
@@ -12,12 +10,12 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Favorites.Get.ById;
 
 internal class Endpoint : Endpoint<GenericIdResponseDTO, FavoriteResponseModel>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -30,28 +28,21 @@ internal class Endpoint : Endpoint<GenericIdResponseDTO, FavoriteResponseModel>
     /// <inheritdoc />
     public override async Task HandleAsync(GenericIdResponseDTO req, CancellationToken ct)
     {
-        FavoritesApi api = new FavoritesApi(client);
-        Result<FavoriteModel?> result = await api.GetById(req.Id, ct);
+        Favorite? favorite = await context.Favorites
+            .AsNoTracking()
+            .Include(f => f.UserNavigation)
+            .Include(f => f.LevelNavigation)
+            .Where(f => f.Id == req.Id)
+            .FirstOrDefaultAsync(ct);
 
-        if (result.IsFailed)
+        if (favorite != null)
         {
-            if (result.TryGetReason(out StatusCodeReason reason) && reason.StatusCode == HttpStatusCode.NotFound)
-            {
-                await SendNotFoundAsync(ct);
-                return;
-            }
-
-            Logger.LogError("Unable to get favorite: {Result}", result);
-            ThrowError("Unable to get favorite");
-        }
-
-        if (result.Value == null)
-        {
-            await SendNotFoundAsync(ct);
+            FavoriteResponseModel responseModel = favorite.ToResponseModel();
+            await SendOkAsync(responseModel, ct);
         }
         else
         {
-            await SendOkAsync(result.Value!, ct);
+            await SendNotFoundAsync(ct);
         }
     }
 }

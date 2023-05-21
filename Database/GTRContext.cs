@@ -32,7 +32,6 @@ public partial class GTRContext : DbContext
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
         modelBuilder
             .HasPostgresExtension("fuzzystrmatch")
             .HasPostgresExtension("postgis")

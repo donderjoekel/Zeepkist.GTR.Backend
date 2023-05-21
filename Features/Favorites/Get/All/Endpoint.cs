@@ -1,22 +1,21 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using Microsoft.EntityFrameworkCore;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
-using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Favorites.Get.All;
 
 internal class Endpoint : Endpoint<FavoritesGetAllRequestDTO, FavoritesGetAllResponseDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -29,37 +28,48 @@ internal class Endpoint : Endpoint<FavoritesGetAllRequestDTO, FavoritesGetAllRes
     /// <inheritdoc />
     public override async Task HandleAsync(FavoritesGetAllRequestDTO req, CancellationToken ct)
     {
-        FavoritesApi api = new FavoritesApi(client);
+        IQueryable<Favorite> query = context.Favorites.AsNoTracking()
+            .Include(f => f.LevelNavigation)
+            .Include(f => f.UserNavigation);
 
-        Result<DirectusGetMultipleResponse<FavoriteModel>> getResult = await api.Get(filter =>
-            {
-                filter.WithUser(req.UserId)
-                    .WithSteamId(req.UserSteamId)
-                    .WithLevel(req.LevelId)
-                    .WithUid(req.LevelUid)
-                    .WithWorkshopId(req.LevelWorkshopId)
-                    .WithOffset(req.Offset)
-                    .WithLimit(req.Limit);
-            },
-            ct);
-
-        if (getResult.IsFailed)
+        if (req.LevelId.HasValue)
         {
-            Logger.LogCritical("Unable to get favorites: {Result}", getResult.ToString());
-            ThrowError("Unable to get favorites");
+            query = query.Where(f => f.Level == req.LevelId.Value);
         }
 
-        List<FavoriteResponseModel> favorites = new();
-
-        foreach (FavoriteModel model in getResult.Value.Data)
+        if (!string.IsNullOrEmpty(req.LevelUid))
         {
-            favorites.Add(model);
+            query = query.Where(f => f.LevelNavigation.Uid == req.LevelUid);
         }
+
+        if (!string.IsNullOrEmpty(req.LevelWorkshopId))
+        {
+            query = query.Where(f => f.LevelNavigation.Wid == req.LevelWorkshopId);
+        }
+
+        if (req.UserId.HasValue)
+        {
+            query = query.Where(f => f.User == req.UserId.Value);
+        }
+
+        if (!string.IsNullOrEmpty(req.UserSteamId))
+        {
+            query = query.Where(f => f.UserNavigation.SteamId == req.UserSteamId);
+        }
+
+        IOrderedQueryable<Favorite> orderedQuery = query.OrderBy(f => f.Id);
+
+        int count = orderedQuery.Count();
+
+        List<Favorite> favorites = await orderedQuery
+            .Skip(req.Offset ?? 0)
+            .Take(req.Limit ?? 100)
+            .ToListAsync(ct);
 
         await SendOkAsync(new FavoritesGetAllResponseDTO()
             {
-                Favorites = favorites,
-                TotalAmount = getResult.Value.Metadata!.FilterCount!.Value
+                Favorites = favorites.Select(x => x.ToResponseModel()).ToList(),
+                TotalAmount = count
             },
             ct);
     }
