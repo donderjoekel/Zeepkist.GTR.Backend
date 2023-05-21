@@ -1,12 +1,8 @@
 ﻿using FastEndpoints;
-using FluentResults;
 using Microsoft.EntityFrameworkCore;
 using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.Backend.Database.Models;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Upvotes.Remove;
@@ -35,9 +31,9 @@ internal class Endpoint : Endpoint<GenericIdRequestDTO>
             ThrowError("Unable to find user id!");
         }
 
-        Upvote? upvote = await (from u in context.Upvotes.AsNoTracking()
-            where u.Id == req.Id && u.User == userId
-            select u).FirstOrDefaultAsync(ct);
+        Upvote? upvote = await context.Upvotes.AsNoTracking()
+            .Where(u => u.Id == req.Id && u.User == userId)
+            .FirstOrDefaultAsync(ct);
 
         if (upvote == null)
         {

@@ -1,23 +1,21 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
-using TNRD.Zeepkist.GTR.Backend.Directus.FilterBuilders;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using Microsoft.EntityFrameworkCore;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
-using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Upvotes.Get.All;
 
 internal class Endpoint : Endpoint<UpvotesGetRequestDTO, UpvotesGetResponseDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -30,49 +28,49 @@ internal class Endpoint : Endpoint<UpvotesGetRequestDTO, UpvotesGetResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(UpvotesGetRequestDTO req, CancellationToken ct)
     {
-        UpvotesApi upvotesApi = new UpvotesApi(client);
+        IQueryable<Upvote> query = context.Upvotes.AsNoTracking()
+            .Include(f => f.LevelNavigation)
+            .Include(f => f.UserNavigation);
 
-        Result<DirectusGetMultipleResponse<UpvoteModel>> getResult = await upvotesApi.Get(
-            builder => { BuildFilter(builder, req); },
-            ct);
-
-        if (getResult.IsFailed)
+        if (req.LevelId.HasValue)
         {
-            Logger.LogCritical("Unable to get upvotes: {Result}", getResult.ToString());
-            ThrowError("Unable to get upvotes");
+            query = query.Where(f => f.Level == req.LevelId.Value);
         }
 
-        List<UpvoteResponseModel> upvotes = new();
-
-        foreach (UpvoteModel model in getResult.Value.Data)
+        if (!string.IsNullOrEmpty(req.LevelUid))
         {
-            upvotes.Add(model);
+            query = query.Where(f => f.LevelNavigation.Uid == req.LevelUid);
         }
+
+        if (!string.IsNullOrEmpty(req.LevelWorkshopId))
+        {
+            query = query.Where(f => f.LevelNavigation.Wid == req.LevelWorkshopId);
+        }
+
+        if (req.UserId.HasValue)
+        {
+            query = query.Where(f => f.User == req.UserId.Value);
+        }
+
+        if (!string.IsNullOrEmpty(req.UserSteamId))
+        {
+            query = query.Where(f => f.UserNavigation.SteamId == req.UserSteamId);
+        }
+
+        IOrderedQueryable<Upvote> orderedQuery = query.OrderBy(f => f.Id);
+
+        int count = orderedQuery.Count();
+
+        List<Upvote> upvotes = await orderedQuery
+            .Skip(req.Offset ?? 0)
+            .Take(req.Limit ?? 100)
+            .ToListAsync(ct);
 
         await SendOkAsync(new UpvotesGetResponseDTO()
             {
-                Upvotes = upvotes,
-                TotalAmount = getResult.Value.Metadata!.FilterCount!.Value
+                Upvotes = upvotes.Select(x => x.ToResponseModel()).ToList(),
+                TotalAmount = count
             },
-            cancellation: ct);
-    }
-
-    private static void BuildFilter(UpvotesFilterBuilder builder, UpvotesGetRequestDTO req)
-    {
-        builder.WithDepth(3);
-
-        if (!string.IsNullOrEmpty(req.UserSteamId))
-            builder.WithUserSteamId(req.UserSteamId);
-        if (req.UserId.HasValue)
-            builder.WithUserId(req.UserId.Value);
-        if (!string.IsNullOrEmpty(req.LevelUid))
-            builder.WithLevelUid(req.LevelUid);
-        if (req.LevelId.HasValue)
-            builder.WithLevelId(req.LevelId.Value);
-        if (!string.IsNullOrEmpty(req.LevelWorkshopId))
-            builder.WithLevelWorkshopId(req.LevelWorkshopId);
-
-        builder.WithOffset(req.Offset);
-        builder.WithLimit(req.Limit);
+            ct);
     }
 }

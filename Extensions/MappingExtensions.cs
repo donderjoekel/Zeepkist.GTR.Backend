@@ -54,4 +54,20 @@ internal static class MappingExtensions
                 new UserResponseModel { Id = favorite.User!.Value },
         };
     }
+
+    public static UpvoteResponseModel ToResponseModel(
+        this Upvote upvote,
+        LevelResponseModel? level = null,
+        UserResponseModel? user = null
+    )
+    {
+        return new UpvoteResponseModel()
+        {
+            Id = upvote.Id,
+            Level = level ?? upvote.LevelNavigation?.ToResponseModel() ??
+                new LevelResponseModel { Id = upvote.Level!.Value },
+            User = user ?? upvote.UserNavigation?.ToResponseModel() ??
+                new UserResponseModel { Id = upvote.User!.Value },
+        };
+    }
 }
