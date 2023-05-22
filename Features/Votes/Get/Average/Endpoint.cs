@@ -1,7 +1,7 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
@@ -9,12 +9,12 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Votes.Get.Average;
 
 internal class Endpoint : Endpoint<VotesGetAverageRequestDTO, VotesGetAverageResponseDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -27,62 +27,35 @@ internal class Endpoint : Endpoint<VotesGetAverageRequestDTO, VotesGetAverageRes
     /// <inheritdoc />
     public override async Task HandleAsync(VotesGetAverageRequestDTO req, CancellationToken ct)
     {
-        string queryString = CreateQueryString(req);
+        IQueryable<IGrouping<int?, Vote>> query = context.Votes.AsNoTracking()
+            .OrderBy(x => x.Id)
+            .Include(x => x.LevelNavigation)
+            .GroupBy(x => x.Level);
 
-        Result<DirectusGetMultipleResponse<AverageVoteModel>> result =
-            await client.Get<DirectusGetMultipleResponse<AverageVoteModel>>($"items/votes?{queryString}", ct);
+        if (req.LevelId.HasValue)
+            query = query.Where(x => x.Key == req.LevelId.Value);
 
-        if (result.IsFailed)
+        List<VotesGetAverageResponseDTO.AverageLevelScore> averageLevelScores = new();
+
+        List<IGrouping<int?, Vote>> groupedVotes = await query.ToListAsync(ct);
+        foreach (IGrouping<int?, Vote> groupedVote in groupedVotes)
         {
-            Logger.LogCritical("Unable to get votes: {Result}", result.ToString());
-            await SendAsync(null!, 500, ct);
-            return;
-        }
-
-        List<VotesGetAverageResponseDTO.AverageLevelScore> averageLevelScores = new List<VotesGetAverageResponseDTO.AverageLevelScore>();
-
-        foreach (AverageVoteModel item in result.Value.Data)
-        {
-            VotesGetAverageResponseDTO.AverageLevelScore averageLevelScore = new VotesGetAverageResponseDTO.AverageLevelScore()
+            List<Vote> votes = groupedVote.ToList();
+            double average = votes.Average(x => x.Score!.Value);
+            VotesGetAverageResponseDTO.AverageLevelScore averageLevelScore = new()
             {
-                AverageScore = item.AverageScore.Value,
-                Category = item.Category,
-                Level = item.Level,
-                AmountOfVotes = item.Count.Value
+                Level = votes.First().LevelNavigation!.ToResponseModel(),
+                AverageScore = (float)average,
+                AmountOfVotes = votes.Count
             };
 
             averageLevelScores.Add(averageLevelScore);
         }
 
-        VotesGetAverageResponseDTO responseModel = new VotesGetAverageResponseDTO()
-        {
-            AverageScores = averageLevelScores
-        };
-
-        await SendAsync(responseModel, cancellation: ct);
-    }
-
-    private static string CreateQueryString(VotesGetAverageRequestDTO req)
-    {
-        List<string> queries = new List<string>();
-
-        queries.Add("aggregate[avg]=score");
-        queries.Add("aggregate[count]=id");
-        queries.Add("groupBy[]=level");
-        queries.Add("groupBy[]=category");
-
-        if (req.LevelId.HasValue)
-            queries.Add($"filter[level][id][_eq]={req.LevelId.Value}");
-
-        queries.Add(req.Offset.HasValue
-            ? $"offset={req.Offset}"
-            : "offset=0");
-
-        queries.Add(req.Limit.HasValue
-            ? $"limit={Math.Min(req.Limit.Value, 100).ToString()}"
-            : "limit=100");
-
-        string queryString = string.Join('&', queries);
-        return queryString;
+        await SendOkAsync(new VotesGetAverageResponseDTO()
+            {
+                AverageScores = averageLevelScores.Skip(req.Offset ?? 0).Take(req.Limit ?? 100).ToList()
+            },
+            ct);
     }
 }

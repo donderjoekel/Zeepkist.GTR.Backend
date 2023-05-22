@@ -20,6 +20,7 @@
         <PackageReference Include="Google.Cloud.Storage.V1" Version="4.4.0" />
         <PackageReference Include="LinqKit" Version="1.2.4" />
         <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.3" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.3" />
@@ -29,7 +30,7 @@
         <PackageReference Include="Semver" Version="2.3.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
         <PackageReference Include="SteamWebAPI2" Version="4.4.0" />
-        <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="2.10.0" />
+        <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="3.0.0" />
         <ProjectReference Condition="'$(Configuration)' == 'Debug'" Include="..\Zeepkist.GTR.DTOs\Zeepkist.GTR.DTOs.csproj" />
     </ItemGroup>
 

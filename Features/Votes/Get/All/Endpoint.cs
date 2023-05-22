@@ -1,22 +1,20 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
-using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Votes.Get.All;
 
 internal class Endpoint : Endpoint<VotesGetRequestDTO, VotesGetResponseDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -29,37 +27,38 @@ internal class Endpoint : Endpoint<VotesGetRequestDTO, VotesGetResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(VotesGetRequestDTO req, CancellationToken ct)
     {
-        VotesApi api = new VotesApi(client);
+        IQueryable<Vote> query = context.Votes.AsNoTracking()
+            .Include(v => v.UserNavigation)
+            .Include(v => v.LevelNavigation);
 
-        Result<DirectusGetMultipleResponse<VoteModel>> getResult = await api.Get(filter =>
-            {
-                filter.WithUser(req.UserId)
-                    .WithSteamId(req.UserSteamId)
-                    .WithLevel(req.LevelId)
-                    .WithUid(req.LevelUid)
-                    .WithWorkshopId(req.LevelWorkshopId)
-                    .WithOffset(req.Offset)
-                    .WithLimit(req.Limit);
-            },
-            ct);
+        if (req.UserId.HasValue)
+            query = query.Where(x => x.User == req.UserId.Value);
 
-        if (getResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to get votes: {Result}", getResult.ToString());
-            ThrowError("Unable to get votes");
-        }
+        if (req.UserSteamId.HasValue())
+            query = query.Where(x => x.UserNavigation.SteamId == req.UserSteamId);
 
-        List<VoteResponseModel> votes = new();
+        if (req.LevelId.HasValue)
+            query = query.Where(x => x.Level == req.LevelId.Value);
 
-        foreach (VoteModel model in getResult.Value.Data)
-        {
-            votes.Add(model);
-        }
+        if (req.LevelUid.HasValue())
+            query = query.Where(x => x.LevelNavigation.Uid == req.LevelUid);
+
+        if (req.LevelWorkshopId.HasValue())
+            query = query.Where(x => x.LevelNavigation.Wid == req.LevelWorkshopId);
+
+        IOrderedQueryable<Vote> orderedQuery = query.OrderBy(x => x.Id);
+
+        int totalAmount = await orderedQuery.CountAsync(ct);
+
+        List<Vote> votes = await orderedQuery
+            .Skip(req.Offset ?? 0)
+            .Take(req.Limit ?? 100)
+            .ToListAsync(ct);
 
         VotesGetResponseDTO responseModel = new VotesGetResponseDTO()
         {
-            Votes = votes,
-            TotalAmount = getResult.Value.Metadata!.FilterCount!.Value
+            Votes = votes.Select(x => x.ToResponseModel()).ToList(),
+            TotalAmount = totalAmount
         };
 
         await SendAsync(responseModel, cancellation: ct);

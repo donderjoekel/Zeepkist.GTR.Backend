@@ -1,5 +1,7 @@
 ﻿using FastEndpoints;
 using FluentResults;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Api;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
@@ -10,13 +12,11 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Votes.Submit;
 
 internal class Endpoint : Endpoint<VotesSubmitRequestDTO>
 {
-    private readonly IDirectusClient client;
-    private readonly VotesApi api;
+    private readonly GTRContext context;
 
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
-        api = new VotesApi(client);
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -34,69 +34,31 @@ internal class Endpoint : Endpoint<VotesSubmitRequestDTO>
             ThrowError("Unable to find user id!");
         }
 
-        Result<DirectusGetMultipleResponse<VoteModel>> result = await api.Get(filter =>
+        int score = Math.Clamp(req.Score, 1, 5);
+
+        Vote? vote = await context.Votes
+            .Where(x => x.Level == req.Level && x.User == userId)
+            .FirstOrDefaultAsync(ct);
+
+        if (vote != null)
+        {
+            if (vote.Score != score)
             {
-                filter
-                    .WithLevel(req.Level)
-                    .WithUser(userId)
-                    .WithCategory(req.Category);
-            },
-            ct);
-
-        if (result.IsFailed)
-        {
-            Logger.LogError("Unable to get vote: {Result}", result.ToString());
-            ThrowError("Unable to get vote");
-        }
-
-        if (result.Value.HasItems)
-        {
-            VoteModel item = result.Value.FirstItem!;
-            if (item.Score == req.Score)
-                await SendOkAsync(ct);
-            else
-                await UpdateExistingVote(req, item.Id, ct);
+                vote.Score = score;
+                await context.SaveChangesAsync(ct);
+            }
         }
         else
         {
-            await PostNewVote(req, userId, ct);
-        }
-    }
-
-    private async Task UpdateExistingVote(VotesSubmitRequestDTO req, int voteId, CancellationToken ct)
-    {
-        Result<VoteModel> patchResult = await api.Patch(voteId,
-            builder =>
+            vote = new Vote()
             {
-                builder.WithScore(req.Score);
-            },
-            ct);
+                Level = req.Level,
+                User = userId,
+                Score = score
+            };
 
-        if (patchResult.IsFailed)
-        {
-            Logger.LogError("Unable to patch vote: {Result}", patchResult.ToString());
-            ThrowError("Unable to patch vote");
-        }
-
-        await SendOkAsync(ct);
-    }
-
-    private async Task PostNewVote(VotesSubmitRequestDTO req, int userId, CancellationToken ct)
-    {
-        Result<int> postResult = await api.Post(builder =>
-            {
-                builder
-                    .WithLevel(req.Level)
-                    .WithUser(userId)
-                    .WithCategory(req.Category)
-                    .WithScore(req.Score);
-            },
-            ct);
-
-        if (postResult.IsFailed)
-        {
-            Logger.LogError("Unable to post vote: {Result}", postResult.ToString());
-            ThrowError("Unable to post vote");
+            await context.Votes.AddAsync(vote, ct);
+            await context.SaveChangesAsync(ct);
         }
 
         await SendOkAsync(ct);

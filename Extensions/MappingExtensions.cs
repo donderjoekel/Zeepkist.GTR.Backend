@@ -70,4 +70,22 @@ internal static class MappingExtensions
                 new UserResponseModel { Id = upvote.User!.Value },
         };
     }
+
+    public static VoteResponseModel ToResponseModel(
+        this Vote vote,
+        LevelResponseModel? level = null,
+        UserResponseModel? user = null
+    )
+    {
+        return new VoteResponseModel()
+        {
+            Id = vote.Id,
+            Score = vote.Score,
+            Category = vote.Category,
+            Level = level ?? vote.LevelNavigation?.ToResponseModel() ??
+                new LevelResponseModel { Id = vote.Level!.Value },
+            User = user ?? vote.UserNavigation?.ToResponseModel() ??
+                new UserResponseModel { Id = vote.User!.Value },
+        };
+    }
 }
