@@ -30,9 +30,9 @@ internal class Endpoint : Endpoint<GenericIdRequestDTO, UsersRankingResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(GenericIdRequestDTO req, CancellationToken ct)
     {
-        User? user = await (from u in context.Users
-            where u.Id == req.Id
-            select u).FirstOrDefaultAsync(ct);
+        User? user = await context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == req.Id, ct);
 
         if (user == null)
         {

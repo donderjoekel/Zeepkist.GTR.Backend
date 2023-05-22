@@ -1,8 +1,7 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
@@ -10,11 +9,11 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Users.Get.BySteamId;
 
 internal class Endpoint : Endpoint<UsersGetBySteamIdRequestDTO, UserResponseModel>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -27,24 +26,12 @@ internal class Endpoint : Endpoint<UsersGetBySteamIdRequestDTO, UserResponseMode
     /// <inheritdoc />
     public override async Task HandleAsync(UsersGetBySteamIdRequestDTO req, CancellationToken ct)
     {
-        UsersApi api = new UsersApi(client);
+        User? user = await context.Users.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SteamId == req.SteamId, ct);
 
-        Result<DirectusGetMultipleResponse<UserModel>> getResult =
-            await api.Get(filter => filter.WithSteamId(req.SteamId), ct);
-
-        if (getResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to check if user exists: {Result}", getResult.ToString());
-            ThrowError("Unable to check if user exists");
-        }
-
-        if (getResult.Value.HasItems)
-        {
-            await SendOkAsync(getResult.Value.FirstItem!, ct);
-        }
+        if (user != null)
+            await SendOkAsync(user.ToResponseModel(), ct);
         else
-        {
             await SendNotFoundAsync(ct);
-        }
     }
 }

@@ -6,6 +6,7 @@ using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 
@@ -31,22 +32,15 @@ internal class Endpoint : Endpoint<UsersUpdateDiscordIdRequestDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(UsersUpdateDiscordIdRequestDTO req, CancellationToken ct)
     {
-        Claim? userClaim = User.FindFirst("UserId");
-        if (userClaim == null)
+        if (!this.TryGetUserId(out int userId))
         {
             await SendUnauthorizedAsync(ct);
             return;
         }
 
-        string userId = userClaim.Value.Split('_')[0];
-        if (!int.TryParse(userId, out int id))
-        {
-            Logger.LogCritical("Unable to parse user id: {UserId}", userId);
-            await SendUnauthorizedAsync(ct);
-            return;
-        }
+        User? user = await context.Users.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == userId, ct);
 
-        User? user = await context.Users.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (user == null)
         {
             await SendNotFoundAsync(ct);

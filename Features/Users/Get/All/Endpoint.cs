@@ -1,21 +1,19 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
-using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Users.Get.All;
 
 internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersGetAllResponseDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -28,34 +26,17 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersGetAllResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(GenericGetRequestDTO req, CancellationToken ct)
     {
-        UsersApi usersApi = new UsersApi(client);
-        Result<DirectusGetMultipleResponse<UserModel>> getResult = await usersApi.Get(builder =>
-            {
-                if (req.Limit.HasValue)
-                    builder.WithLimit(req.Limit.Value);
-                if (req.Offset.HasValue)
-                    builder.WithOffset(req.Offset.Value);
-            },
-            ct);
-
-        if (getResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to check if user exists: {Result}", getResult.ToString());
-            await SendAsync(null!, 500, ct);
-            return;
-        }
-
-        List<UserResponseModel> users = new();
-
-        foreach (UserModel item in getResult.Value.Data)
-        {
-            users.Add(item);
-        }
+        IQueryable<User> query = context.Users.AsNoTracking();
+        int count = query.Count();
+        List<User> users = await query
+            .Skip(req.Offset ?? 0)
+            .Take(req.Limit ?? 100)
+            .ToListAsync(ct);
 
         UsersGetAllResponseDTO usersGetAllResponseDTO = new UsersGetAllResponseDTO()
         {
-            TotalAmount = getResult.Value.Metadata!.FilterCount!.Value,
-            Users = users
+            TotalAmount = count,
+            Users = users.Select(x => x.ToResponseModel()).ToList()
         };
 
         await SendAsync(usersGetAllResponseDTO, cancellation: ct);

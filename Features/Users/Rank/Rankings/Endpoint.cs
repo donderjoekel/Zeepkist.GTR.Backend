@@ -31,11 +31,9 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersRankingsResponseDT
         int limit = req.Limit ?? 50;
         int offset = req.Offset ?? 0;
 
-        List<User> users = await (
-                from u in context.Users
-                orderby u.Position
-                select u)
+        List<User> users = await context.Users
             .AsNoTracking()
+            .OrderBy(u => u.Position)
             .Skip(offset)
             .Take(limit)
             .ToListAsync(ct);

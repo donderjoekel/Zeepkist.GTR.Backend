@@ -1,21 +1,19 @@
-﻿using System.Security.Claims;
-using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+﻿using FastEndpoints;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Users.Name;
 
 internal class Endpoint : Endpoint<UsersUpdateNameRequestDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -28,28 +26,21 @@ internal class Endpoint : Endpoint<UsersUpdateNameRequestDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(UsersUpdateNameRequestDTO req, CancellationToken ct)
     {
-        Claim? userClaim = User.FindFirst("UserId");
-        if (userClaim == null)
+        if (!this.TryGetUserId(out int userId))
         {
             await SendUnauthorizedAsync(ct);
             return;
         }
 
-        string userId = userClaim.Value.Split('_')[0];
-
-        Result<DirectusPostResponse<UserModel>> result =
-            await client.Patch<DirectusPostResponse<UserModel>>($"items/users/{userId}",
-                UsersFactory.New().WithSteamName(req.SteamName).Build(),
-                ct);
-
-        if (result.IsSuccess)
+        User? user = await context.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        if (user == null)
         {
-            await SendOkAsync(ct);
+            Logger.LogError("Unable to find user");
+            ThrowError("Unable to find user");
         }
-        else
-        {
-            Logger.LogCritical("Unable to patch steam name: {Result}", result.ToString());
-            await SendAsync(null!, 500, ct);
-        }
+
+        user.SteamName = req.SteamName;
+        await context.SaveChangesAsync(ct);
+        await SendOkAsync(ct);
     }
 }

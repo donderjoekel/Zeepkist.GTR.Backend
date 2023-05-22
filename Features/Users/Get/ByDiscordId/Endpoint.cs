@@ -1,12 +1,7 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using Microsoft.EntityFrameworkCore;
 using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.Backend.Database.Models;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
@@ -31,9 +26,8 @@ internal class Endpoint : Endpoint<UsersGetByDiscordIdRequestDTO, UserResponseMo
     /// <inheritdoc />
     public override async Task HandleAsync(UsersGetByDiscordIdRequestDTO req, CancellationToken ct)
     {
-        User? user = await (from u in context.Users
-            where u.DiscordId == req.DiscordId
-            select u).FirstOrDefaultAsync(ct);
+        User? user = await context.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.DiscordId == req.DiscordId, ct);
 
         if (user == null)
             await SendNotFoundAsync(ct);

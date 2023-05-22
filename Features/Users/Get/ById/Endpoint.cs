@@ -1,8 +1,7 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
@@ -10,11 +9,11 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Users.Get.ById;
 
 internal class Endpoint : Endpoint<GenericIdRequestDTO, UserResponseModel>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -27,23 +26,12 @@ internal class Endpoint : Endpoint<GenericIdRequestDTO, UserResponseModel>
     /// <inheritdoc />
     public override async Task HandleAsync(GenericIdRequestDTO req, CancellationToken ct)
     {
-        UsersApi usersApi = new UsersApi(client);
+        User? user = await context.Users.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == req.Id, ct);
 
-        Result<UserModel?> getResult = await usersApi.GetById(req.Id, ct);
-
-        if (getResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to check if user exists: {Result}", getResult.ToString());
-            ThrowError("Unable to check if user exists");
-        }
-
-        if (getResult.Value != null)
-        {
-            await SendOkAsync(getResult.Value, ct);
-        }
+        if (user != null)
+            await SendOkAsync(user.ToResponseModel(), ct);
         else
-        {
             await SendNotFoundAsync(ct);
-        }
     }
 }
