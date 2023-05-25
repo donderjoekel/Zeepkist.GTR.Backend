@@ -62,10 +62,7 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
             }
             else
             {
-                if (string.IsNullOrEmpty(getResult.Value.ThumbnailUrl) && !string.IsNullOrEmpty(req.Thumbnail))
-                {
-                    await UpdateThumbnailForLevel(getResult.Value, req, ct);
-                }
+                await SendOkAsync(new GenericIdResponseDTO(getResult.Value.Id), ct);
             }
         }
         finally
@@ -80,7 +77,9 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
 
         try
         {
-            level = await context.Levels.FirstOrDefaultAsync(x => x.Uid == req.Uid && x.Wid == req.Wid, ct);
+            level = await context.Levels
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Uid == req.Uid && x.Wid == req.Wid, ct);
         }
         catch (Exception e)
         {
