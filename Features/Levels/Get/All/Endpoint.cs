@@ -1,13 +1,7 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using LinqKit;
-using Microsoft.EntityFrameworkCore;
 using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.Backend.Database.Models;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
@@ -48,41 +42,46 @@ internal class Endpoint : Endpoint<LevelsGetRequestDTO, LevelsGetResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(LevelsGetRequestDTO req, CancellationToken ct)
     {
-        ExpressionStarter<Level> builder = PredicateBuilder.New<Level>(true);
+        IQueryable<Level> query = context.Levels.AsNoTracking()
+            .OrderBy(x => x.Id);
 
-        if (!string.IsNullOrEmpty(req.Uid))
-            builder = builder.And(l => l.Uid == req.Uid);
+        if (req.Uid.HasValue())
+            query = query.Where(x => x.Uid == req.Uid);
 
-        if (!string.IsNullOrEmpty(req.Author))
-            builder = builder.And(l => l.Author == req.Author);
+        if (req.Author.HasValue())
+            query = query.Where(x => x.Author == req.Author);
 
-        if (!string.IsNullOrEmpty(req.Name))
-            builder = builder.And(l => l.Name == req.Name);
+        if (req.Name.HasValue())
+            query = query.Where(x => x.Name == req.Name);
 
-        if (!string.IsNullOrEmpty(req.WorkshopId))
-            builder = builder.And(l => l.Wid == req.WorkshopId);
+        if (req.WorkshopId.HasValue())
+            query = query.Where(x => x.Wid == req.WorkshopId);
 
         if (req.ValidOnly == true)
-            builder = builder.And(l => l.IsValid == true);
+            query = query.Where(x => x.IsValid == true);
 
         if (req.InvalidOnly == true)
-            builder = builder.And(l => l.IsValid == false);
-
-        int limit = req.Limit ?? 100;
-        int offset = req.Offset ?? 0;
-
-        IQueryable<Level> query = (from l in context.Levels
-                orderby l.Id descending
-                select l)
-            .AsExpandable()
-            .Where(builder);
+            query = query.Where(x => x.IsValid == false);
 
         IOrderedQueryable<Level> sortedQuery = SortQuery(req, query);
 
+        int limit = req.Limit ?? 100;
+        int offset = req.Offset ?? 0;
         int count = sortedQuery.Count();
-        List<Level> levels = sortedQuery.Skip(offset).Take(limit).ToList();
+        var items = await sortedQuery
+            .Skip(offset)
+            .Take(limit)
+            .GroupJoin(context.Records.AsNoTracking().Include(r => r.UserNavigation),
+                l => l.Id,
+                r => r.Level,
+                (l, r) => new
+                {
+                    Level = l,
+                    WorldRecord = r.FirstOrDefault(x => x.IsWr)
+                })
+            .ToListAsync(ct);
 
-        List<LevelResponseModel> responseModels = levels.Select(l => l.ToResponseModel()).ToList();
+        List<LevelResponseModel> responseModels = items.Select(x => x.Level.ToResponseModel(x.WorldRecord)).ToList();
 
         await SendAsync(new LevelsGetResponseDTO()
             {

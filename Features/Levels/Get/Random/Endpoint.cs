@@ -29,17 +29,23 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, LevelsGetRandomResponse
     /// <inheritdoc />
     public override async Task HandleAsync(GenericGetRequestDTO req, CancellationToken ct)
     {
-        List<Level> levels =
-            await (from l in context.Levels.AsNoTracking()
-                    orderby EF.Functions.Random()
-                    select l)
-                .Skip(req.Offset ?? 0)
-                .Take(Max(req.Limit, 100, 1))
-                .ToListAsync(ct);
+        var items = await context.Levels.AsNoTracking()
+            .OrderBy(l => EF.Functions.Random())
+            .GroupJoin(context.Records.AsNoTracking().Include(r => r.UserNavigation),
+                l => l.Id,
+                r => r.Level,
+                (l, r) => new
+                {
+                    Level = l,
+                    WorldRecord = r.FirstOrDefault(x => x.IsWr)
+                })
+            .Skip(req.Offset ?? 0)
+            .Take(Max(req.Limit, 100, 1))
+            .ToListAsync(ct);
 
         await SendOkAsync(new LevelsGetRandomResponseDTO()
             {
-                Levels = levels.Select(x => x.ToResponseModel()).ToList()
+                Levels = items.Select(x => x.Level.ToResponseModel(x.WorldRecord)).ToList()
             },
             ct);
     }

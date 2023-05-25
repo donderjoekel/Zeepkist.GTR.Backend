@@ -1,29 +1,29 @@
 ﻿using System.Collections.Concurrent;
-using System.Security.Claims;
 using System.Text.RegularExpressions;
-using System.Web;
 using FastEndpoints;
 using FluentResults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using TNRD.Zeepkist.GTR.Backend.Directus;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Levels.Add;
 
 internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
 {
-    private static readonly ConcurrentDictionary<string, AutoResetEvent> uidToAutoResetEvent =
-        new ConcurrentDictionary<string, AutoResetEvent>();
+    private static readonly ConcurrentDictionary<string, AutoResetEvent> uidToAutoResetEvent = new();
 
-    private readonly IDirectusClient client;
     private readonly IGoogleUploadService googleUploadService;
+    private readonly GTRContext context;
 
-    public Endpoint(IDirectusClient client, IGoogleUploadService googleUploadService)
+    public Endpoint(IGoogleUploadService googleUploadService, GTRContext context)
     {
-        this.client = client;
         this.googleUploadService = googleUploadService;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -34,67 +34,100 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
         Description(b => b.ExcludeFromDescription());
     }
 
-    private async Task<bool> AttemptGet(LevelsAddRequestDTO req, CancellationToken ct)
-    {
-        Result<DirectusGetMultipleResponse<LevelModel>> getResult =
-            await client.Get<DirectusGetMultipleResponse<LevelModel>>(
-                $"items/levels?fields=*.*&filter[uid][_eq]={HttpUtility.UrlEncode(req.Uid)}",
-                ct);
-
-        if (getResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to check if level already exists: {Result}", getResult.ToString());
-            ThrowError("Unable to check if level already exists");
-        }
-
-        if (getResult.Value.HasItems)
-        {
-            await SendAsync(new GenericIdResponseDTO() { Id = getResult.Value.FirstItem!.Id }, cancellation: ct);
-            return true;
-        }
-
-        return false;
-    }
-
     /// <inheritdoc />
     public override async Task HandleAsync(LevelsAddRequestDTO req, CancellationToken ct)
     {
-        Claim? userIdClaim = User.FindFirst("UserId");
-        if (userIdClaim == null)
+        if (!this.TryGetUserId(out int userId))
         {
             Logger.LogCritical("No UserId claim found!");
             ThrowError("Unable to find userid!");
         }
 
-        int id = int.Parse(userIdClaim.Value.Split('_')[0]);
-
-        if (await AttemptGet(req, ct))
+        Result<Level?> getResult = await AttemptGet(req, ct);
+        if (getResult.IsFailed)
         {
+            Logger.LogCritical("Failed to get level. Result: {Result}", getResult);
+            ThrowError("Failed to get level");
             return;
         }
 
         AutoResetEvent autoResetEvent = uidToAutoResetEvent.GetOrAdd(req.Uid, new AutoResetEvent(true));
         autoResetEvent.WaitOne();
 
-        if (await AttemptGet(req, ct))
-            return;
+        try
+        {
+            if (getResult.Value == null)
+            {
+                await CreateLevel(userId, req, ct);
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(getResult.Value.ThumbnailUrl) && !string.IsNullOrEmpty(req.Thumbnail))
+                {
+                    await UpdateThumbnailForLevel(getResult.Value, req, ct);
+                }
+            }
+        }
+        finally
+        {
+            autoResetEvent.Set();
+        }
+    }
+
+    private async Task<Result<Level?>> AttemptGet(LevelsAddRequestDTO req, CancellationToken ct)
+    {
+        Level? level;
 
         try
         {
-            Result<string> uploadThumbnailResult = string.Empty;
-            if (!string.IsNullOrEmpty(req.Thumbnail))
-            {
-                uploadThumbnailResult = await googleUploadService.UploadThumbnail(req.Uid, req.Thumbnail, ct);
-                if (uploadThumbnailResult.IsFailed)
-                {
-                    Logger.LogError("Unable to upload thumbnail: {Result}", uploadThumbnailResult.ToString());
-                }
-            }
+            level = await context.Levels.FirstOrDefaultAsync(x => x.Uid == req.Uid && x.Wid == req.Wid, ct);
+        }
+        catch (Exception e)
+        {
+            return Result.Fail(new ExceptionalError(e));
+        }
 
-            LevelModel postData = new LevelModel()
+        if (level == null)
+            return Result.Ok();
+
+        await SendAsync(new GenericIdResponseDTO()
             {
-                UniqueId = req.Uid,
-                WorkshopId = req.Wid,
+                Id = level.Id
+            },
+            cancellation: ct);
+
+        return Result.Ok<Level?>(level);
+    }
+
+    private async Task CreateLevel(int userId, LevelsAddRequestDTO req, CancellationToken ct)
+    {
+        Result<Level?> getResult = await AttemptGet(req, ct);
+
+        if (getResult.IsFailed)
+        {
+            Logger.LogCritical("Failed to get level. Result: {Result}", getResult);
+            ThrowError("Failed to get level");
+            return;
+        }
+
+        Result<string> uploadThumbnailResult = string.Empty;
+        if (!string.IsNullOrEmpty(req.Thumbnail))
+        {
+            uploadThumbnailResult = await googleUploadService.UploadThumbnail(req.Uid, req.Thumbnail, ct);
+            if (uploadThumbnailResult.IsFailed)
+            {
+                Logger.LogError("Unable to upload thumbnail: {Result}", uploadThumbnailResult.ToString());
+            }
+        }
+
+        EntityEntry<Level> entry;
+
+        try
+        {
+            entry = context.Levels.Add(new Level()
+            {
+                Uid = req.Uid,
+                Wid = req.Wid,
                 Name = req.Name,
                 Author = RemoveHtmlTags(req.Author),
                 TimeAuthor = req.TimeAuthor,
@@ -102,25 +135,60 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
                 TimeSilver = req.TimeSilver,
                 TimeBronze = req.TimeBronze,
                 ThumbnailUrl = uploadThumbnailResult.IsSuccess ? uploadThumbnailResult.Value : string.Empty,
-                CreatedBy = id,
+                CreatedBy = userId,
                 IsValid = req.IsValid
-            };
-
-            Result<DirectusPostResponse<LevelModel>> postResult =
-                await client.Post<DirectusPostResponse<LevelModel>>("items/levels?fields=*.*", postData, ct);
-
-            if (postResult.IsFailed)
-            {
-                Logger.LogCritical("Unable to create new level: {Result}", postResult.ToString());
-                ThrowError("Unable to create new level");
-            }
-
-            await SendAsync(new GenericIdResponseDTO() { Id = postResult.Value.Data.Id }, cancellation: ct);
+            });
         }
-        finally
+        catch (Exception e)
         {
-            autoResetEvent.Set();
+            Logger.LogCritical(e, "Unable to add level to database!");
+            ThrowError("Unable to add level to database!");
+            return;
         }
+
+        try
+        {
+            await context.SaveChangesAsync(ct);
+        }
+        catch (Exception e)
+        {
+            Logger.LogCritical(e, "Unable to save level to database!");
+            ThrowError("Unable to save level to database!");
+            return;
+        }
+
+        await SendOkAsync(new GenericIdResponseDTO()
+            {
+                Id = entry.Entity.Id
+            },
+            ct);
+    }
+
+    private async Task UpdateThumbnailForLevel(Level level, LevelsAddRequestDTO req, CancellationToken ct)
+    {
+        Result<string> uploadThumbnailResult = await googleUploadService.UploadThumbnail(req.Uid, req.Thumbnail, ct);
+        if (uploadThumbnailResult.IsFailed)
+        {
+            Logger.LogError("Unable to upload thumbnail: {Result}", uploadThumbnailResult.ToString());
+            return;
+        }
+
+        level.ThumbnailUrl = uploadThumbnailResult.Value;
+
+        try
+        {
+            await context.SaveChangesAsync(ct);
+        }
+        catch (Exception e)
+        {
+            Logger.LogCritical("Unable to save level to database! {Exception}", e);
+        }
+
+        await SendOkAsync(new GenericIdResponseDTO()
+            {
+                Id = level.Id
+            },
+            ct);
     }
 
     private string RemoveHtmlTags(string author)

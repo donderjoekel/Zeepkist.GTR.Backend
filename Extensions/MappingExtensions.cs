@@ -5,7 +5,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Extensions;
 
 internal static class MappingExtensions
 {
-    public static LevelResponseModel ToResponseModel(this Level level)
+    public static LevelResponseModel ToResponseModel(this Level level, Record? worldRecord = null)
     {
         return new LevelResponseModel
         {
@@ -21,8 +21,19 @@ internal static class MappingExtensions
             UniqueId = level.Uid,
             WorkshopId = level.Wid,
             Points = level.Points,
-            Rank = level.Rank
+            Rank = level.Rank,
+            WorldRecord = worldRecord?.ToWorldRecordResponseModel() ?? null
         };
+    }
+
+    private static RecordResponseModel ToWorldRecordResponseModel(
+        this Record record,
+        UserResponseModel? user = null
+    )
+    {
+        RecordResponseModel responseModel = record.ToResponseModel(null, user);
+        responseModel.Level = null;
+        return responseModel;
     }
 
     public static UserResponseModel ToResponseModel(this User user)
@@ -86,6 +97,33 @@ internal static class MappingExtensions
                 new LevelResponseModel { Id = vote.Level!.Value },
             User = user ?? vote.UserNavigation?.ToResponseModel() ??
                 new UserResponseModel { Id = vote.User!.Value },
+        };
+    }
+
+    public static RecordResponseModel ToResponseModel(
+        this Record record,
+        LevelResponseModel? level = null,
+        UserResponseModel? user = null
+    )
+    {
+        return new RecordResponseModel()
+        {
+            Level = level ?? record.LevelNavigation?.ToResponseModel() ??
+                new LevelResponseModel { Id = record.Level!.Value },
+            User = user ?? record.UserNavigation?.ToResponseModel() ??
+                new UserResponseModel { Id = record.User!.Value },
+            Id = record.Id,
+            IsValid = record.IsValid,
+            Splits = string.IsNullOrEmpty(record.Splits)
+                ? Array.Empty<float>()
+                : record.Splits.Split('|').Select(float.Parse).ToArray(),
+            Time = record.Time,
+            DateCreated = record.DateCreated,
+            GameVersion = record.GameVersion,
+            GhostUrl = record.GhostUrl,
+            IsBest = record.IsBest,
+            ScreenshotUrl = record.ScreenshotUrl,
+            IsWorldRecord = record.IsWr
         };
     }
 }
