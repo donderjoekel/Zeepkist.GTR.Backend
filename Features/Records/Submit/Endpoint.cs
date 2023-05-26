@@ -62,10 +62,10 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
     {
         string joinedSplits = string.Join('|', req.Splits);
 
-        IQueryable<Record> queryable = from r in context.Records
+        IQueryable<Record> queryable = from r in context.Records.AsNoTracking()
             where r.User.Value == req.User &&
                   r.Level.Value == req.Level &&
-                  r.Time.Value == req.Time &&
+                  Math.Abs(r.Time.Value - req.Time) < 0.001f &&
                   r.Splits == joinedSplits
             select r;
 
