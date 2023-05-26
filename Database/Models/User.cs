@@ -20,6 +20,8 @@ public partial class User
 
     public int? WorldRecords { get; set; }
 
+    public bool? Banned { get; set; }
+
     public virtual ICollection<Auth> Auths { get; set; } = new List<Auth>();
 
     public virtual ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();

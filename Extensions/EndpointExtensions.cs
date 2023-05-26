@@ -1,5 +1,7 @@
 ﻿using System.Security.Claims;
 using FastEndpoints;
+using TNRD.Zeepkist.GTR.Backend.Database;
+using TNRD.Zeepkist.GTR.Backend.Database.Models;
 
 namespace TNRD.Zeepkist.GTR.Backend.Extensions;
 
@@ -23,5 +25,17 @@ public static class EndpointExtensions
             userId = -1;
             return false;
         }
+    }
+    
+    public static async Task<bool> UserIsBanned(this IEndpoint endpoint, GTRContext db)
+    {
+        if (!endpoint.TryGetUserId(out int userId))
+            return false;
+
+        User? user = await db.Users.AsNoTracking().FirstOrDefaultAsync(x=>x.Id == userId);
+        if (user == null)
+            return false;
+
+        return user.Banned ?? false;
     }
 }

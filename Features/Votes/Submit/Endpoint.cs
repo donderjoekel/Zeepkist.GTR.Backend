@@ -34,6 +34,13 @@ internal class Endpoint : Endpoint<VotesSubmitRequestDTO>
             ThrowError("Unable to find user id!");
         }
 
+        if (await this.UserIsBanned(context))
+        {
+            Logger.LogWarning("Banned user tried to submit record");
+            ThrowError("You are banned!");
+            return;
+        }
+
         int score = Math.Clamp(req.Score, 1, 5);
 
         Vote? vote = await context.Votes

@@ -89,6 +89,13 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             return;
         }
 
+        if (await this.UserIsBanned(context))
+        {
+            Logger.LogWarning("Banned user tried to submit record");
+            ThrowError("You are banned!");
+            return;
+        }
+
         if (userId != req.User)
         {
             Logger.LogCritical("UserId claim does not match request!");

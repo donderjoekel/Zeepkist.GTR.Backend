@@ -38,6 +38,13 @@ internal class Endpoint : Endpoint<FavoritesAddRequestDTO, GenericIdResponseDTO>
             ThrowError("Unable to find user id!");
         }
 
+        if (await this.UserIsBanned(context))
+        {
+            Logger.LogWarning("Banned user tried to submit record");
+            ThrowError("You are banned!");
+            return;
+        }
+
         Favorite? favorite = await (from f in context.Favorites.AsNoTracking()
             where f.User == userId && f.Level == req.LevelId
             select f).FirstOrDefaultAsync(ct);

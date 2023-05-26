@@ -204,6 +204,9 @@ public partial class GTRContext : DbContext
             entity.ToTable("users");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Banned)
+                .HasDefaultValueSql("false")
+                .HasColumnName("banned");
             entity.Property(e => e.DateCreated).HasColumnName("date_created");
             entity.Property(e => e.DateUpdated).HasColumnName("date_updated");
             entity.Property(e => e.Position).HasColumnName("position");

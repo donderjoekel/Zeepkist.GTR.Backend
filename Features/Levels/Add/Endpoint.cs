@@ -43,6 +43,13 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
             ThrowError("Unable to find userid!");
         }
 
+        if (await this.UserIsBanned(context))
+        {
+            Logger.LogWarning("Banned user tried to submit record");
+            ThrowError("You are banned!");
+            return;
+        }
+
         Result<Level?> getResult = await AttemptGet(req, ct);
         if (getResult.IsFailed)
         {
