@@ -1,6 +1,6 @@
 ﻿namespace TNRD.Zeepkist.GTR.Backend.Database.Models;
 
-public partial class Auth
+public partial class Auth : IModel
 {
     public int Id { get; set; }
 

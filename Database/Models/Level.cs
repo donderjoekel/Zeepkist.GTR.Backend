@@ -1,6 +1,6 @@
 ﻿namespace TNRD.Zeepkist.GTR.Backend.Database.Models;
 
-public partial class Level
+public partial class Level : IModel
 {
     public int Id { get; set; }
 

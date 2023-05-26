@@ -1,6 +1,6 @@
 ﻿namespace TNRD.Zeepkist.GTR.Backend.Database.Models;
 
-public partial class Upvote
+public partial class Upvote : IModel
 {
     public int Id { get; set; }
 
