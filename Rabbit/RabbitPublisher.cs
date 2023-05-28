@@ -13,13 +13,13 @@ internal class RabbitPublisher : IRabbitPublisher
         this.channel = channel;
     }
 
-    public void Publish(PublishableRecord record)
+    public void Publish(string exchange, object data)
     {
         if (channel == null)
             return;
 
-        string json = JsonConvert.SerializeObject(record);
+        string json = JsonConvert.SerializeObject(data);
         byte[] body = Encoding.UTF8.GetBytes(json);
-        channel.BasicPublish("records", string.Empty, null, body);
+        channel.BasicPublish(exchange, string.Empty, null, body);
     }
 }

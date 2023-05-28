@@ -168,21 +168,22 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             },
             cancellation: ct);
 
-        publisher.Publish(new PublishableRecord
-        {
-            Id = data.Id,
-            User = data.User.AsT1.Id,
-            Level = data.Level.AsT1.Id,
-            Time = data.Time,
-            IsValid = data.IsValid,
-            IsBest = updateRecordsResult.Value.IsBest,
-            IsWorldRecord = updateRecordsResult.Value.IsWorldRecord,
-            Splits = string.IsNullOrEmpty(data.Splits)
-                ? Array.Empty<float>()
-                : data.Splits.Split('|').Select(float.Parse).ToArray(),
-            GhostUrl = data.GhostUrl,
-            ScreenshotUrl = data.ScreenshotUrl,
-        });
+        publisher.Publish("records",
+            new PublishableRecord
+            {
+                Id = data.Id,
+                User = data.User.AsT1.Id,
+                Level = data.Level.AsT1.Id,
+                Time = data.Time,
+                IsValid = data.IsValid,
+                IsBest = updateRecordsResult.Value.IsBest,
+                IsWorldRecord = updateRecordsResult.Value.IsWorldRecord,
+                Splits = string.IsNullOrEmpty(data.Splits)
+                    ? Array.Empty<float>()
+                    : data.Splits.Split('|').Select(float.Parse).ToArray(),
+                GhostUrl = data.GhostUrl,
+                ScreenshotUrl = data.ScreenshotUrl,
+            });
     }
 
     private async Task<Result<UploadDataResult>> UploadData(
