@@ -31,6 +31,7 @@ internal class RabbitHostedService : IHostedService
         connection = factory.CreateConnection();
         channel = connection.CreateModel();
         channel.ExchangeDeclare("records", type: ExchangeType.Fanout);
+        channel.ExchangeDeclare("media", type: ExchangeType.Fanout);
 
         publisher.Initialize(channel);
 
