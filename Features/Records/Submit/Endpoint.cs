@@ -10,6 +10,7 @@ using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using TNRD.Zeepkist.GTR.DTOs.Rabbit;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Submit;
 
@@ -109,20 +110,14 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             return;
         }
 
-        string identifier = Guid.NewGuid().ToString();
-
-        Result<UploadDataResult> uploadResult = await UploadData(identifier, req, ct);
-        if (uploadResult.IsFailed)
-            return;
-
         RecordModel postModel = new RecordModel()
         {
             Level = req.Level,
             User = req.User,
             Time = req.Time,
             Splits = string.Join('|', req.Splits),
-            GhostUrl = uploadResult.Value.GhostUrl!,
-            ScreenshotUrl = uploadResult.Value.ScreenshotUrl!,
+            GhostUrl = string.Empty,
+            ScreenshotUrl = string.Empty,
             IsValid = req.IsValid,
             IsBest = false,
             IsWorldRecord = false,
@@ -184,52 +179,14 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
                 GhostUrl = data.GhostUrl,
                 ScreenshotUrl = data.ScreenshotUrl,
             });
-    }
 
-    private async Task<Result<UploadDataResult>> UploadData(
-        string identifier,
-        RequestModel req,
-        CancellationToken ct
-    )
-    {
-        Task<Result<string>> ghostTask = googleUploadService.UploadGhost(identifier, req.GhostData, ct);
-        Task<Result<string>> screenshotTask = googleUploadService.UploadScreenshot(identifier, req.ScreenshotData, ct);
-
-        await Task.WhenAll(ghostTask, screenshotTask);
-
-        if (ghostTask.IsFaulted)
-        {
-            Logger.LogCritical(ghostTask.Exception, "Unable to upload ghost");
-            await SendAsync(null!, 500, ct);
-            return Result.Fail(string.Empty);
-        }
-
-        if (ghostTask.Result.IsFailed)
-        {
-            Logger.LogCritical("Unable to upload ghost: {Result}", ghostTask.Result.ToString());
-            await SendAsync(null!, 500, ct);
-            return Result.Fail(string.Empty);
-        }
-
-        if (screenshotTask.IsFaulted)
-        {
-            Logger.LogCritical(screenshotTask.Exception, "Unable to upload screenshot");
-            await SendAsync(null!, 500, ct);
-            return Result.Fail(string.Empty);
-        }
-
-        if (screenshotTask.Result.IsFailed)
-        {
-            Logger.LogCritical("Unable to upload screenshot: {Result}", screenshotTask.Result.ToString());
-            await SendAsync(null!, 500, ct);
-            return Result.Fail(string.Empty);
-        }
-
-        return Result.Ok(new UploadDataResult()
-        {
-            GhostUrl = ghostTask.Result.Value,
-            ScreenshotUrl = screenshotTask.Result.Value
-        });
+        publisher.Publish("media",
+            new UploadRecordMediaRequest
+            {
+                Id = data.Id,
+                GhostData = req.GhostData,
+                ScreenshotData = req.ScreenshotData
+            });
     }
 
     private async Task<Result<UpdateRecordsResult>> UpdateRecords(
