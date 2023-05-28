@@ -38,7 +38,7 @@ internal class Endpoint : Endpoint<UsersUpdateDiscordIdRequestDTO>
             return;
         }
 
-        User? user = await context.Users.AsNoTracking()
+        User? user = await context.Users
             .FirstOrDefaultAsync(x => x.Id == userId, ct);
 
         if (user == null)
