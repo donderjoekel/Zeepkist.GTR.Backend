@@ -1,8 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Quartz;
-using TNRD.Zeepkist.GTR.Backend.Database;
-using TNRD.Zeepkist.GTR.Backend.Database.Models;
+﻿using Quartz;
+using TNRD.Zeepkist.GTR.Database;
+using TNRD.Zeepkist.GTR.Database.Models;
 
 namespace TNRD.Zeepkist.GTR.Backend.Jobs;
 
@@ -14,7 +12,7 @@ internal class CalculateWorldRecordsJob : IJob
     {
         this.db = db;
     }
-    
+
     /// <inheritdoc />
     public async Task Execute(IJobExecutionContext context)
     {
@@ -22,13 +20,13 @@ internal class CalculateWorldRecordsJob : IJob
 
         foreach (User user in users)
         {
-            int amountOfWorldRecords = await (from r in db.Records.AsNoTracking()
-                where r.User == user.Id && r.IsWr
-                select r).CountAsync(context.CancellationToken);
+            int amountOfWorldRecords = await db.Records.AsNoTracking()
+                .Where(r => r.User == user.Id && r.IsWr)
+                .CountAsync(context.CancellationToken);
 
             user.WorldRecords = amountOfWorldRecords;
         }
-        
+
         await db.SaveChangesAsync(context.CancellationToken);
     }
 }

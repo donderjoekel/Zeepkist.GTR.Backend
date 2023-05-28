@@ -29,7 +29,9 @@
         <PackageReference Include="RabbitMQ.Client" Version="6.5.0" />
         <PackageReference Include="Semver" Version="2.3.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
+        <PackageReference Include="StackExchange.Redis" Version="2.6.111" />
         <PackageReference Include="SteamWebAPI2" Version="4.4.0" />
+        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="1.1.0" />
         <PackageReference Condition="'$(Configuration)' != 'Debug'" Include="TNRD.Zeepkist.GTR.DTOs" Version="3.1.0" />
         <ProjectReference Condition="'$(Configuration)' == 'Debug'" Include="..\Zeepkist.GTR.DTOs\Zeepkist.GTR.DTOs.csproj" />
     </ItemGroup>

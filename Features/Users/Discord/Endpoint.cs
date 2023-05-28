@@ -2,8 +2,8 @@
 using FastEndpoints;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
-using TNRD.Zeepkist.GTR.Backend.Database;
-using TNRD.Zeepkist.GTR.Backend.Database.Models;
+using TNRD.Zeepkist.GTR.Database;
+using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
 using TNRD.Zeepkist.GTR.Backend.Extensions;

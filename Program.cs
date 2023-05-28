@@ -9,14 +9,14 @@ using Quartz;
 using Serilog;
 using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
-using TNRD.Zeepkist.GTR.Backend.Database;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Options;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
-using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
+using TNRD.Zeepkist.GTR.Backend.Redis;
 using TNRD.Zeepkist.GTR.Backend.Steam;
+using TNRD.Zeepkist.GTR.Database;
 
 namespace TNRD.Zeepkist.GTR.Backend;
 

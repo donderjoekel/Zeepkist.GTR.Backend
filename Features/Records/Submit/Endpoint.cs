@@ -2,14 +2,13 @@
 using FastEndpoints;
 using FluentResults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using TNRD.Zeepkist.GTR.Backend.Database;
-using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
+using TNRD.Zeepkist.GTR.Database;
+using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Submit;
