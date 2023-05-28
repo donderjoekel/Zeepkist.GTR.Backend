@@ -13,6 +13,7 @@ using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Options;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
+using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Backend.Redis;
 using TNRD.Zeepkist.GTR.Backend.Steam;
@@ -72,6 +73,7 @@ internal class Program
         builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("Steam"));
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
         builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("Rabbit"));
+        builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
 
         builder.Services.AddNpgsql<GTRContext>(builder.Configuration["Database:ConnectionString"]);
 
