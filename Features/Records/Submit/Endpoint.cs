@@ -1,9 +1,7 @@
-﻿using System.Collections.Concurrent;
-using FastEndpoints;
+﻿using FastEndpoints;
 using FluentResults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Database;
@@ -15,21 +13,6 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Submit;
 
 internal class Endpoint : Endpoint<RequestModel, ResponseModel>
 {
-    private class UploadDataResult
-    {
-        public string? GhostUrl { get; set; }
-        public string? ScreenshotUrl { get; set; }
-    }
-
-    private class UpdateRecordsResult
-    {
-        public bool IsBest { get; set; }
-        public bool IsWorldRecord { get; set; }
-    }
-
-    private static readonly ConcurrentDictionary<int, AutoResetEvent> levelIdToAutoResetEvent =
-        new ConcurrentDictionary<int, AutoResetEvent>();
-
     private readonly IDirectusClient client;
     private readonly GTRContext context;
     private readonly IRabbitPublisher publisher;
@@ -51,27 +34,6 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
         Post("records/submit");
         AuthSchemes(JwtBearerDefaults.AuthenticationScheme);
         Description(b => b.ExcludeFromDescription());
-    }
-
-    private async Task<bool> DoesRecordExist(RequestModel req, CancellationToken ct)
-    {
-        string joinedSplits = string.Join('|', req.Splits);
-
-        IQueryable<Record> queryable = from r in context.Records.AsNoTracking()
-            where r.User.Value == req.User &&
-                  r.Level.Value == req.Level &&
-                  Math.Abs(r.Time.Value - req.Time) < 0.001f &&
-                  r.Splits == joinedSplits
-            select r;
-
-        Record? existingRecord = await queryable.FirstOrDefaultAsync(ct);
-        if (existingRecord == null)
-            return false;
-
-        TimeSpan a = DateTime.Now - existingRecord.DateCreated!.Value;
-        TimeSpan b = DateTime.UtcNow - existingRecord.DateCreated!.Value;
-
-        return a < TimeSpan.FromMinutes(1) || b < TimeSpan.FromMinutes(1);
     }
 
     /// <inheritdoc />
@@ -192,5 +154,26 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
                 Level = req.Level,
                 Time = data.Time
             });
+    }
+
+    private async Task<bool> DoesRecordExist(RequestModel req, CancellationToken ct)
+    {
+        string joinedSplits = string.Join('|', req.Splits);
+
+        IQueryable<Record> queryable = from r in context.Records.AsNoTracking()
+            where r.User.Value == req.User &&
+                  r.Level.Value == req.Level &&
+                  Math.Abs(r.Time.Value - req.Time) < 0.001f &&
+                  r.Splits == joinedSplits
+            select r;
+
+        Record? existingRecord = await queryable.FirstOrDefaultAsync(ct);
+        if (existingRecord == null)
+            return false;
+
+        TimeSpan a = DateTime.Now - existingRecord.DateCreated!.Value;
+        TimeSpan b = DateTime.UtcNow - existingRecord.DateCreated!.Value;
+
+        return a < TimeSpan.FromMinutes(1) || b < TimeSpan.FromMinutes(1);
     }
 }
