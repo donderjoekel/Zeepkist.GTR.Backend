@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
-using TNRD.Zeepkist.GTR.Backend.Google;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
@@ -32,19 +31,16 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
         new ConcurrentDictionary<int, AutoResetEvent>();
 
     private readonly IDirectusClient client;
-    private readonly IGoogleUploadService googleUploadService;
     private readonly GTRContext context;
     private readonly IRabbitPublisher publisher;
 
     public Endpoint(
         IDirectusClient client,
-        IGoogleUploadService googleUploadService,
         GTRContext context,
         IRabbitPublisher publisher
     )
     {
         this.client = client;
-        this.googleUploadService = googleUploadService;
         this.context = context;
         this.publisher = publisher;
     }
@@ -187,6 +183,14 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
                 GhostData = req.GhostData,
                 ScreenshotData = req.ScreenshotData
             });
+
+        publisher.Publish("pb",
+            new ProcessPersonalBestRequest
+            {
+                User = userId,
+                Level = req.Level,
+                Time = data.Time
+            });
     }
 
     private async Task<Result<UpdateRecordsResult>> UpdateRecords(
@@ -207,16 +211,6 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
         bool isBest = false;
         bool isWorldRecord = false;
 
-        Result<bool> isBestResult = await UpdateBestRecord(req, data, ct);
-        if (isBestResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to update best record: {Reason}", isBestResult.ToString());
-            await SendAsync(null!, 500, ct);
-            return isBestResult.ToResult();
-        }
-
-        isBest = isBestResult.Value;
-
         Result<bool> isWorldRecordResult = await UpdateWorldRecord(req, data, ct);
         if (isWorldRecordResult.IsFailed)
         {
@@ -232,56 +226,6 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             IsBest = isBest,
             IsWorldRecord = isWorldRecord
         };
-    }
-
-    private async Task<Result<bool>> UpdateBestRecord(
-        RequestModel req,
-        RecordModel getRecordModel,
-        CancellationToken ct
-    )
-    {
-        Result<DirectusGetMultipleResponse<RecordModel>> getCurrentBestResult =
-            await client.Get<DirectusGetMultipleResponse<RecordModel>>(
-                $"items/records?fields=*.*&filter[user][id][_eq]={req.User}&filter[level][id][_eq]={req.Level}&filter[is_best][_eq]=true",
-                ct);
-
-        if (getCurrentBestResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to get current best: {Result}", getCurrentBestResult.ToString());
-            return getCurrentBestResult.ToResult();
-        }
-
-        if (getCurrentBestResult.Value.HasItems)
-        {
-            RecordModel item = getCurrentBestResult.Value.FirstItem!;
-
-            if (item.Time < req.Time)
-                return false;
-
-            Result<DirectusPostResponse<RecordModel>> patchResult =
-                await client.Patch<DirectusPostResponse<RecordModel>>($"items/records/{item.Id}",
-                    RecordsFactory.New().WithIsBestRun(false).Build(),
-                    ct);
-
-            if (patchResult.IsFailed)
-            {
-                Logger.LogCritical("Unable to remove current best record: {Result}", patchResult.ToString());
-                return patchResult.ToResult();
-            }
-        }
-
-        Result<DirectusPostResponse<RecordModel>> patchNewBestResult =
-            await client.Patch<DirectusPostResponse<RecordModel>>($"items/records/{getRecordModel.Id}",
-                RecordsFactory.New().WithIsBestRun(true).Build(),
-                ct);
-
-        if (patchNewBestResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to set new best record: {Result}", patchNewBestResult.ToString());
-            return false;
-        }
-
-        return true;
     }
 
     private async Task<Result<bool>> UpdateWorldRecord(
