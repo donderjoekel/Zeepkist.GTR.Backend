@@ -51,7 +51,6 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
         Post("records/submit");
         AuthSchemes(JwtBearerDefaults.AuthenticationScheme);
         Description(b => b.ExcludeFromDescription());
-        // PostProcessors(new TrackOfTheDayPostProcessor());
     }
 
     private async Task<bool> DoesRecordExist(RequestModel req, CancellationToken ct)
@@ -129,14 +128,6 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             await SendAsync(null!, 500, ct);
         }
 
-        Result<UpdateRecordsResult> updateRecordsResult = await UpdateRecords(req, result.Value.Data, ct);
-
-        if (updateRecordsResult.IsFailed)
-        {
-            await SendAsync(null!, 500, ct);
-            return;
-        }
-
         RecordModel data = result.Value.Data;
 
         await SendAsync(new ResponseModel()
@@ -151,8 +142,8 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
                 GhostUrl = data.GhostUrl,
                 ScreenshotUrl = data.ScreenshotUrl,
                 IsValid = data.IsValid,
-                IsBest = updateRecordsResult.Value.IsBest,
-                IsWorldRecord = updateRecordsResult.Value.IsWorldRecord,
+                IsBest = false,
+                IsWorldRecord = false,
                 GameVersion = data.GameVersion,
                 DateCreated = data.DateCreated,
                 DateUpdated = data.DateUpdated
@@ -167,8 +158,8 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
                 Level = data.Level.AsT1.Id,
                 Time = data.Time,
                 IsValid = data.IsValid,
-                IsBest = updateRecordsResult.Value.IsBest,
-                IsWorldRecord = updateRecordsResult.Value.IsWorldRecord,
+                IsBest = false,
+                IsWorldRecord = false,
                 Splits = string.IsNullOrEmpty(data.Splits)
                     ? Array.Empty<float>()
                     : data.Splits.Split('|').Select(float.Parse).ToArray(),
@@ -192,100 +183,14 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
                 Level = req.Level,
                 Time = data.Time
             });
-    }
 
-    private async Task<Result<UpdateRecordsResult>> UpdateRecords(
-        RequestModel req,
-        RecordModel data,
-        CancellationToken ct
-    )
-    {
-        if (!req.IsValid)
-        {
-            return new UpdateRecordsResult()
+        publisher.Publish("wr",
+            new ProcessWorldRecordRequest()
             {
-                IsBest = false,
-                IsWorldRecord = false
-            };
-        }
-
-        bool isBest = false;
-        bool isWorldRecord = false;
-
-        Result<bool> isWorldRecordResult = await UpdateWorldRecord(req, data, ct);
-        if (isWorldRecordResult.IsFailed)
-        {
-            Logger.LogCritical("Unable to update world record: {Reason}", isWorldRecordResult.ToString());
-            await SendAsync(null!, 500, ct);
-            return isWorldRecordResult.ToResult();
-        }
-
-        isWorldRecord = isWorldRecordResult.Value;
-
-        return new UpdateRecordsResult()
-        {
-            IsBest = isBest,
-            IsWorldRecord = isWorldRecord
-        };
-    }
-
-    private async Task<Result<bool>> UpdateWorldRecord(
-        RequestModel req,
-        RecordModel getRecordModel,
-        CancellationToken ct
-    )
-    {
-        AutoResetEvent autoResetEvent = levelIdToAutoResetEvent.GetOrAdd(req.Level, new AutoResetEvent(true));
-        autoResetEvent.WaitOne();
-
-        try
-        {
-            Result<DirectusGetMultipleResponse<RecordModel>> getCurrentWorldRecord =
-                await client.Get<DirectusGetMultipleResponse<RecordModel>>(
-                    $"items/records?fields=*.*&filter[level][id][_eq]={req.Level}&filter[is_wr][_eq]=true",
-                    ct);
-
-            if (getCurrentWorldRecord.IsFailed)
-            {
-                Logger.LogCritical("Unable to get current world record: {Result}", getCurrentWorldRecord.ToString());
-                return getCurrentWorldRecord.ToResult();
-            }
-
-            if (getCurrentWorldRecord.Value.HasItems)
-            {
-                RecordModel item = getCurrentWorldRecord.Value.FirstItem!;
-
-                if (item.Time < req.Time)
-                    return false;
-
-                Result<DirectusPostResponse<RecordModel>> patchResult =
-                    await client.Patch<DirectusPostResponse<RecordModel>>($"items/records/{item.Id}",
-                        RecordsFactory.New().WithIsWorldRecord(false).Build(),
-                        ct);
-
-                if (patchResult.IsFailed)
-                {
-                    Logger.LogCritical("Unable to remove current world record: {Result}", patchResult.ToString());
-                    return patchResult.ToResult();
-                }
-            }
-
-            Result<DirectusPostResponse<RecordModel>> patchNewWorldRecordResult =
-                await client.Patch<DirectusPostResponse<RecordModel>>($"items/records/{getRecordModel.Id}",
-                    new RecordsFactory().WithIsWorldRecord(true).Build(),
-                    ct);
-
-            if (patchNewWorldRecordResult.IsFailed)
-            {
-                Logger.LogCritical("Unable to set new best record: {Result}", patchNewWorldRecordResult.ToString());
-                return false;
-            }
-
-            return true;
-        }
-        finally
-        {
-            autoResetEvent.Set();
-        }
+                Record = data.Id,
+                User = userId,
+                Level = req.Level,
+                Time = data.Time
+            });
     }
 }
