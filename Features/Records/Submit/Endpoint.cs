@@ -1,29 +1,23 @@
 ﻿using FastEndpoints;
-using FluentResults;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using TNRD.Zeepkist.GTR.Backend.Directus;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.Rabbit;
+using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Submit;
 
-internal class Endpoint : Endpoint<RequestModel, ResponseModel>
+internal class Endpoint : Endpoint<RequestModel, RecordResponseModel>
 {
-    private readonly IDirectusClient client;
     private readonly GTRContext context;
     private readonly IRabbitPublisher publisher;
 
-    public Endpoint(
-        IDirectusClient client,
-        GTRContext context,
-        IRabbitPublisher publisher
-    )
+    public Endpoint(GTRContext context, IRabbitPublisher publisher)
     {
-        this.client = client;
         this.context = context;
         this.publisher = publisher;
     }
@@ -67,7 +61,7 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             return;
         }
 
-        RecordModel postModel = new RecordModel()
+        EntityEntry<Record> entry = context.Records.Add(new Record()
         {
             Level = req.Level,
             User = req.User,
@@ -77,62 +71,25 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
             ScreenshotUrl = string.Empty,
             IsValid = req.IsValid,
             IsBest = false,
-            IsWorldRecord = false,
-            GameVersion = req.GameVersion
-        };
+            IsWr = false,
+            GameVersion = req.GameVersion,
+            DateCreated = DateTime.UtcNow
+        });
 
-        Result<DirectusPostResponse<RecordModel>> result =
-            await client.Post<DirectusPostResponse<RecordModel>>("items/records?fields=*.*", postModel, ct);
+        await context.SaveChangesAsync(ct);
 
-        if (result.IsFailed)
-        {
-            Logger.LogCritical("Unable to post record: {Reason}", result.ToString());
-            await SendAsync(null!, 500, ct);
-        }
-
-        RecordModel data = result.Value.Data;
-
-        await SendAsync(new ResponseModel()
-            {
-                Id = data.Id,
-                Level = data.Level.AsT1.Id,
-                User = data.User.AsT1.Id,
-                Time = data.Time,
-                Splits = string.IsNullOrEmpty(data.Splits)
-                    ? Array.Empty<float>()
-                    : data.Splits.Split('|').Select(float.Parse).ToArray(),
-                GhostUrl = data.GhostUrl,
-                ScreenshotUrl = data.ScreenshotUrl,
-                IsValid = data.IsValid,
-                IsBest = false,
-                IsWorldRecord = false,
-                GameVersion = data.GameVersion,
-                DateCreated = data.DateCreated,
-                DateUpdated = data.DateUpdated
-            },
-            cancellation: ct);
+        await SendOkAsync(entry.Entity.ToResponseModel(), ct);
 
         publisher.Publish("records",
-            new PublishableRecord
+            new RecordId
             {
-                Id = data.Id,
-                User = data.User.AsT1.Id,
-                Level = data.Level.AsT1.Id,
-                Time = data.Time,
-                IsValid = data.IsValid,
-                IsBest = false,
-                IsWorldRecord = false,
-                Splits = string.IsNullOrEmpty(data.Splits)
-                    ? Array.Empty<float>()
-                    : data.Splits.Split('|').Select(float.Parse).ToArray(),
-                GhostUrl = data.GhostUrl,
-                ScreenshotUrl = data.ScreenshotUrl,
+                Id = entry.Entity.Id
             });
 
         publisher.Publish("media",
             new UploadRecordMediaRequest
             {
-                Id = data.Id,
+                Id = entry.Entity.Id,
                 GhostData = req.GhostData,
                 ScreenshotData = req.ScreenshotData
             });
@@ -140,19 +97,19 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
         publisher.Publish("pb",
             new ProcessPersonalBestRequest
             {
-                Record = data.Id,
+                Record = entry.Entity.Id,
                 User = userId,
                 Level = req.Level,
-                Time = data.Time
+                Time = entry.Entity.Time!.Value
             });
 
         publisher.Publish("wr",
             new ProcessWorldRecordRequest()
             {
-                Record = data.Id,
+                Record = entry.Entity.Id,
                 User = userId,
                 Level = req.Level,
-                Time = data.Time
+                Time = entry.Entity.Time!.Value
             });
     }
 
@@ -160,14 +117,11 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
     {
         string joinedSplits = string.Join('|', req.Splits);
 
-        IQueryable<Record> queryable = from r in context.Records.AsNoTracking()
-            where r.User.Value == req.User &&
-                  r.Level.Value == req.Level &&
-                  Math.Abs(r.Time.Value - req.Time) < 0.001f &&
-                  r.Splits == joinedSplits
-            select r;
+        Record? existingRecord = await context.Records.AsNoTracking()
+            .Where(r => r.User == req.User && r.Level == req.Level && Math.Abs(r.Time!.Value - req.Time) < 0.001f &&
+                        r.Splits == joinedSplits)
+            .FirstOrDefaultAsync(ct);
 
-        Record? existingRecord = await queryable.FirstOrDefaultAsync(ct);
         if (existingRecord == null)
             return false;
 
