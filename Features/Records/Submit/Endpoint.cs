@@ -187,6 +187,7 @@ internal class Endpoint : Endpoint<RequestModel, ResponseModel>
         publisher.Publish("pb",
             new ProcessPersonalBestRequest
             {
+                Record = data.Id,
                 User = userId,
                 Level = req.Level,
                 Time = data.Time
