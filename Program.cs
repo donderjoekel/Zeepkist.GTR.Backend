@@ -86,8 +86,7 @@ internal class Program
         builder.Services.AddCors();
         builder.Services.AddSwaggerDoc(b => { b.Title = "Zeepkist GTR"; }, addJWTBearerAuth: false);
 
-        builder.Services.AddHttpClient("directus",
-            ConfigureDirectusClient);
+        builder.Services.AddHttpClient("directus", ConfigureDirectusClient);
 
         builder.Services.AddSingleton<IDirectusClient, DirectusClient>();
         builder.Services.AddSingleton<IGoogleUploadService, CloudStorageUploadService>();
