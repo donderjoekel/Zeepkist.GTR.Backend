@@ -1,12 +1,13 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Quartz;
-using TNRD.Zeepkist.GTR.Backend.Database;
-using TNRD.Zeepkist.GTR.Backend.Database.Equality;
-using TNRD.Zeepkist.GTR.Backend.Database.Models;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
+using TNRD.Zeepkist.GTR.Database;
+using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Jobs;
+
+
 
 internal abstract class PopularityJobBase : IJob
 {
@@ -21,8 +22,8 @@ internal abstract class PopularityJobBase : IJob
         this.db = db;
         this.cache = cache;
 
-        levelToCount = new(LevelEqualityComparer.Instance);
-        levelToWorldRecord = new(LevelEqualityComparer.Instance);
+        levelToCount = new(BasicModelEqualityComparer.Instance);
+        levelToWorldRecord = new(BasicModelEqualityComparer.Instance);
     }
 
     /// <inheritdoc />

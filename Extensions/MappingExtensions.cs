@@ -1,4 +1,4 @@
-﻿using TNRD.Zeepkist.GTR.Backend.Database.Models;
+﻿using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Extensions;
