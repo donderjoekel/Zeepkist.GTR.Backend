@@ -5,13 +5,11 @@ using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.Rabbit;
-using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Submit;
 
-internal class Endpoint : Endpoint<RequestModel, RecordResponseModel>
+internal class Endpoint : Endpoint<RequestModel>
 {
     private readonly GTRContext context;
     private readonly IRabbitPublisher publisher;
@@ -78,8 +76,6 @@ internal class Endpoint : Endpoint<RequestModel, RecordResponseModel>
 
         await context.SaveChangesAsync(ct);
 
-        await SendOkAsync(entry.Entity.ToResponseModel(), ct);
-
         publisher.Publish("records",
             new RecordId
             {
@@ -111,6 +107,8 @@ internal class Endpoint : Endpoint<RequestModel, RecordResponseModel>
                 Level = req.Level,
                 Time = entry.Entity.Time!.Value
             });
+
+        await SendOkAsync(ct);
     }
 
     private async Task<bool> DoesRecordExist(RequestModel req, CancellationToken ct)
