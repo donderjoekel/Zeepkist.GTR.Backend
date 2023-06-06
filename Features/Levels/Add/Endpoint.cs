@@ -86,7 +86,7 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
         {
             level = await context.Levels
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Uid == req.Uid && x.Wid == req.Wid, ct);
+                .FirstOrDefaultAsync(x => x.Uid == req.Uid, ct);
         }
         catch (Exception e)
         {
