@@ -58,19 +58,18 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
             return;
         }
 
+        if (getResult.Value != null)
+        {
+            await SendAsync(new GenericIdResponseDTO(getResult.Value.Id), cancellation: ct);
+            return;
+        }
+
         AutoResetEvent autoResetEvent = uidToAutoResetEvent.GetOrAdd(req.Uid, new AutoResetEvent(true));
         autoResetEvent.WaitOne();
 
         try
         {
-            if (getResult.Value == null)
-            {
-                await CreateLevel(userId, req, ct);
-            }
-            else
-            {
-                await SendOkAsync(new GenericIdResponseDTO(getResult.Value.Id), ct);
-            }
+            await GetOrCreateLevel(userId, req, ct);
         }
         finally
         {
@@ -86,26 +85,34 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
         {
             level = await context.Levels
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Uid == req.Uid && x.Wid == req.Wid, ct);
+                .FirstOrDefaultAsync(x => x.Uid == req.Uid, ct);
         }
         catch (Exception e)
         {
             return Result.Fail(new ExceptionalError(e));
         }
 
-        if (level == null)
-            return Result.Ok();
-
-        await SendAsync(new GenericIdResponseDTO()
-            {
-                Id = level.Id
-            },
-            cancellation: ct);
-
-        return Result.Ok<Level?>(level);
+        return level == null ? Result.Ok() : Result.Ok<Level?>(level);
     }
 
-    private async Task CreateLevel(int userId, LevelsAddRequestDTO req, CancellationToken ct)
+    private async Task<Result<Level?>> AttemptGetWithTracking(LevelsAddRequestDTO req, CancellationToken ct)
+    {
+        Level? level;
+
+        try
+        {
+            level = await context.Levels
+                .FirstOrDefaultAsync(x => x.Uid == req.Uid, ct);
+        }
+        catch (Exception e)
+        {
+            return Result.Fail(new ExceptionalError(e));
+        }
+
+        return level == null ? Result.Ok() : Result.Ok<Level?>(level);
+    }
+
+    private async Task GetOrCreateLevel(int userId, LevelsAddRequestDTO req, CancellationToken ct)
     {
         Result<Level?> getResult = await AttemptGet(req, ct);
 
@@ -116,6 +123,37 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
             return;
         }
 
+        if (getResult.Value != null)
+        {
+            await ReturnOrRefreshThumbnail(req, ct, getResult);
+            return;
+        }
+
+        await CreateLevel(userId, req, ct);
+    }
+
+    private async Task ReturnOrRefreshThumbnail(LevelsAddRequestDTO req, CancellationToken ct, Result<Level?> getResult)
+    {
+        if (!string.IsNullOrEmpty(getResult.Value!.ThumbnailUrl))
+        {
+            await SendOkAsync(new GenericIdResponseDTO(getResult.Value.Id), ct);
+            return;
+        }
+
+        getResult = await AttemptGetWithTracking(req, ct);
+        if (getResult.IsFailed || getResult.Value == null)
+        {
+            Logger.LogCritical("Failed to get level. Result: {Result}", getResult);
+            ThrowError("Failed to get level");
+            return;
+        }
+
+        await UpdateThumbnailForLevel(getResult.Value, req, ct);
+        await SendOkAsync(new GenericIdResponseDTO(getResult.Value.Id), ct);
+    }
+
+    private async Task CreateLevel(int userId, LevelsAddRequestDTO req, CancellationToken ct)
+    {
         Result<string> uploadThumbnailResult = string.Empty;
         if (!string.IsNullOrEmpty(req.Thumbnail))
         {
@@ -163,11 +201,7 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
             return;
         }
 
-        await SendOkAsync(new GenericIdResponseDTO()
-            {
-                Id = entry.Entity.Id
-            },
-            ct);
+        await SendOkAsync(new GenericIdResponseDTO(entry.Entity.Id), ct);
     }
 
     private async Task UpdateThumbnailForLevel(Level level, LevelsAddRequestDTO req, CancellationToken ct)
@@ -189,12 +223,6 @@ internal class Endpoint : Endpoint<LevelsAddRequestDTO, GenericIdResponseDTO>
         {
             Logger.LogCritical("Unable to save level to database! {Exception}", e);
         }
-
-        await SendOkAsync(new GenericIdResponseDTO()
-            {
-                Id = level.Id
-            },
-            ct);
     }
 
     private string RemoveHtmlTags(string author)
