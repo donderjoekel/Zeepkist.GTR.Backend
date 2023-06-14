@@ -7,7 +7,7 @@ using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
-namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Get;
+namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Get.All;
 
 internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
 {
