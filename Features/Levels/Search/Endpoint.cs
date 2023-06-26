@@ -1,23 +1,21 @@
-﻿using System.Globalization;
-using System.Web;
-using FastEndpoints;
-using FluentResults;
+﻿using FastEndpoints;
 using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
+using TNRD.Zeepkist.GTR.Database;
+using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
-using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Levels.Search;
 
 internal class Endpoint : Endpoint<LevelsSearchRequestDTO, LevelsSearchResponseDTO>
 {
-    private readonly IDirectusClient client;
+    private readonly GTRContext context;
 
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -25,91 +23,165 @@ internal class Endpoint : Endpoint<LevelsSearchRequestDTO, LevelsSearchResponseD
     {
         AllowAnonymous();
         Get("levels/search");
+        Summary(s =>
+        {
+            s.RequestParam(p => p.Sort!,
+                "Comma separated value. <br /> Can be negated by adding a '-' in front of the option. <br /> Valid options are: " +
+                "id, name, author, uniqueId, workshopId, rank, points, timeAuthor, timeGold, timeSilver, timeBronze, dateCreated");
+        });
     }
 
     /// <inheritdoc />
     public override async Task HandleAsync(LevelsSearchRequestDTO req, CancellationToken ct)
     {
-        List<string> queries = new List<string>();
+        IQueryable<Level> queryable = context.Levels.AsNoTracking()
+            .Where(x => EF.Functions.Like(x.Name, $"%{req.Query}%") || EF.Functions.Like(x.Author, $"%{req.Query}%"));
 
-        queries.Add("fields=*.*");
-        queries.Add("meta=filter_count");
+        if (req.MinAuthor.HasValue) queryable = queryable.Where(x => x.TimeAuthor >= req.MinAuthor.Value);
+        if (req.MaxAuthor.HasValue) queryable = queryable.Where(x => x.TimeAuthor <= req.MaxAuthor.Value);
+        if (req.MinGold.HasValue) queryable = queryable.Where(x => x.TimeGold >= req.MinGold.Value);
+        if (req.MaxGold.HasValue) queryable = queryable.Where(x => x.TimeGold <= req.MaxGold.Value);
+        if (req.MinSilver.HasValue) queryable = queryable.Where(x => x.TimeSilver >= req.MinSilver.Value);
+        if (req.MaxSilver.HasValue) queryable = queryable.Where(x => x.TimeSilver <= req.MaxSilver.Value);
+        if (req.MinBronze.HasValue) queryable = queryable.Where(x => x.TimeBronze >= req.MinBronze.Value);
+        if (req.MaxBronze.HasValue) queryable = queryable.Where(x => x.TimeBronze <= req.MaxBronze.Value);
 
-        if (!string.IsNullOrEmpty(req.Query))
-            queries.Add($"search={HttpUtility.UrlEncode(req.Query)}");
+        IOrderedQueryable<Level> sortedQuery = SortQuery(req, queryable);
 
-        AddTimingQueries(req, queries);
+        int count = sortedQuery.Count();
 
-        if (req.Offset.HasValue)
-            queries.Add($"offset={req.Offset}");
-        else
-            queries.Add("offset=0");
+        var items = await sortedQuery.GroupJoin(context.Records.AsNoTracking().Include(r => r.UserNavigation),
+                l => l.Id,
+                r => r.Level,
+                (l, r) => new
+                {
+                    Level = l,
+                    WorldRecord = r.FirstOrDefault(x => x.IsWr)
+                })
+            .Skip(req.Offset ?? 0)
+            .Take(req.Limit.HasValue ? Math.Min(100, req.Limit.Value) : 100)
+            .ToListAsync(ct);
 
-        if (req.Limit.HasValue)
-            queries.Add($"limit={Math.Min(req.Limit.Value, 100).ToString()}");
-        else
-            queries.Add("limit=100");
-
-        string queryString = string.Join('&', queries);
-
-        Result<DirectusGetMultipleResponse<LevelModel>> result =
-            await client.Get<DirectusGetMultipleResponse<LevelModel>>($"items/levels?{queryString}", ct);
-
-        if (result.IsFailed)
-        {
-            Logger.LogCritical("Unable to get levels: {Result}", result.ToString());
-            await SendAsync(null!, 500, ct);
-            return;
-        }
-
-        List<LevelResponseModel> levels = new List<LevelResponseModel>();
-
-        foreach (LevelModel model in result.Value.Data)
-        {
-            levels.Add(model);
-        }
-
-        LevelsSearchResponseDTO responseModel = new LevelsSearchResponseDTO()
-        {
-            TotalAmount = result.Value.Metadata!.FilterCount!.Value,
-            Levels = levels,
-        };
-
-        await SendAsync(responseModel, cancellation: ct);
+        await SendOkAsync(new LevelsSearchResponseDTO()
+            {
+                TotalAmount = count,
+                Levels = items.Select(x => x.Level.ToResponseModel(x.WorldRecord)).ToList()
+            },
+            ct);
     }
-
-    private static void AddTimingQueries(LevelsSearchRequestDTO req, List<string> queries)
+    
+    private static IOrderedQueryable<Level> SortQuery(LevelsSearchRequestDTO req, IQueryable<Level> queryable)
     {
-        if (req.MinAuthor.HasValue && req.MaxAuthor.HasValue)
-            queries.Add(
-                $"filter[time_author][_between]={req.MinAuthor.Value.ToString(CultureInfo.InvariantCulture)},{req.MaxAuthor.Value.ToString(CultureInfo.InvariantCulture)}");
-        else if (req.MinAuthor.HasValue)
-            queries.Add($"filter[time_author][_gte]={req.MinAuthor.Value.ToString(CultureInfo.InvariantCulture)}");
-        else if (req.MaxAuthor.HasValue)
-            queries.Add($"filter[time_author][_lte]={req.MaxAuthor.Value.ToString(CultureInfo.InvariantCulture)}");
+        if (string.IsNullOrEmpty(req.Sort))
+        {
+            return queryable.OrderBy(l => l.Id);
+        }
 
-        if (req.MinGold.HasValue && req.MaxGold.HasValue)
-            queries.Add(
-                $"filter[time_gold][_between]={req.MinGold.Value.ToString(CultureInfo.InvariantCulture)},{req.MaxGold.Value.ToString(CultureInfo.InvariantCulture)}");
-        else if (req.MinGold.HasValue)
-            queries.Add($"filter[time_gold][_gte]={req.MinGold.Value.ToString(CultureInfo.InvariantCulture)}");
-        else if (req.MaxGold.HasValue)
-            queries.Add($"filter[time_gold][_lte]={req.MaxGold.Value.ToString(CultureInfo.InvariantCulture)}");
+        string[] splits = req.Sort.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-        if (req.MinSilver.HasValue && req.MaxSilver.HasValue)
-            queries.Add(
-                $"filter[time_silver][_between]={req.MinSilver.Value.ToString(CultureInfo.InvariantCulture)},{req.MaxSilver.Value.ToString(CultureInfo.InvariantCulture)}");
-        else if (req.MinSilver.HasValue)
-            queries.Add($"filter[time_silver][_gte]={req.MinSilver.Value.ToString(CultureInfo.InvariantCulture)}");
-        else if (req.MaxSilver.HasValue)
-            queries.Add($"filter[time_silver][_lte]={req.MaxSilver.Value.ToString(CultureInfo.InvariantCulture)}");
+        IOrderedQueryable<Level>? orderedQueryable = null;
 
-        if (req.MinBronze.HasValue && req.MaxBronze.HasValue)
-            queries.Add(
-                $"filter[time_bronze][_between]={req.MinBronze.Value.ToString(CultureInfo.InvariantCulture)},{req.MaxBronze.Value.ToString(CultureInfo.InvariantCulture)}");
-        else if (req.MinBronze.HasValue)
-            queries.Add($"filter[time_bronze][_gte]={req.MinBronze.Value.ToString(CultureInfo.InvariantCulture)}");
-        else if (req.MaxBronze.HasValue)
-            queries.Add($"filter[time_bronze][_lte]={req.MaxBronze.Value.ToString(CultureInfo.InvariantCulture)}");
+        foreach (string split in splits)
+        {
+            bool isNegative = false;
+            string s = split;
+
+            if (s.StartsWith('-'))
+            {
+                isNegative = true;
+                s = s[1..];
+            }
+
+            orderedQueryable = s switch
+            {
+                "id" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.Id)
+                        : orderedQueryable.ThenByDescending(l => l.Id)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.Id)
+                        : orderedQueryable.ThenBy(l => l.Id),
+                "name" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.Name)
+                        : orderedQueryable.ThenByDescending(l => l.Name)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.Name)
+                        : orderedQueryable.ThenBy(l => l.Name),
+                "author" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.Author)
+                        : orderedQueryable.ThenByDescending(l => l.Author)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.Author)
+                        : orderedQueryable.ThenBy(l => l.Author),
+                "uniqueId" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.Uid)
+                        : orderedQueryable.ThenByDescending(l => l.Uid)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.Uid)
+                        : orderedQueryable.ThenBy(l => l.Uid),
+                "workshopId" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.Wid)
+                        : orderedQueryable.ThenByDescending(l => l.Wid)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.Wid)
+                        : orderedQueryable.ThenBy(l => l.Wid),
+                "rank" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.Rank)
+                        : orderedQueryable.ThenByDescending(l => l.Rank)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.Rank)
+                        : orderedQueryable.ThenBy(l => l.Rank),
+                "points" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.Points)
+                        : orderedQueryable.ThenByDescending(l => l.Points)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.Points)
+                        : orderedQueryable.ThenBy(l => l.Points),
+                "timeAuthor" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.TimeAuthor)
+                        : orderedQueryable.ThenByDescending(l => l.TimeAuthor)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.TimeAuthor)
+                        : orderedQueryable.ThenBy(l => l.TimeAuthor),
+                "timeGold" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.TimeGold)
+                        : orderedQueryable.ThenByDescending(l => l.TimeGold)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.TimeGold)
+                        : orderedQueryable.ThenBy(l => l.TimeGold),
+                "timeSilver" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.TimeSilver)
+                        : orderedQueryable.ThenByDescending(l => l.TimeSilver)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.TimeSilver)
+                        : orderedQueryable.ThenBy(l => l.TimeSilver),
+                "timeBronze" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.TimeBronze)
+                        : orderedQueryable.ThenByDescending(l => l.TimeBronze)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.TimeBronze)
+                        : orderedQueryable.ThenBy(l => l.TimeBronze),
+                "dateCreated" => isNegative
+                    ? orderedQueryable == null
+                        ? queryable.OrderByDescending(l => l.DateCreated)
+                        : orderedQueryable.ThenByDescending(l => l.DateCreated)
+                    : orderedQueryable == null
+                        ? queryable.OrderBy(l => l.DateCreated)
+                        : orderedQueryable.ThenBy(l => l.DateCreated),
+                _ => orderedQueryable
+            };
+        }
+
+        return orderedQueryable ?? queryable.OrderBy(x => x.Id);
     }
 }
