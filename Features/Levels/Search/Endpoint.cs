@@ -35,7 +35,7 @@ internal class Endpoint : Endpoint<LevelsSearchRequestDTO, LevelsSearchResponseD
     public override async Task HandleAsync(LevelsSearchRequestDTO req, CancellationToken ct)
     {
         IQueryable<Level> queryable = context.Levels.AsNoTracking()
-            .Where(x => EF.Functions.Like(x.Name, $"%{req.Query}%") || EF.Functions.Like(x.Author, $"%{req.Query}%"));
+            .Where(x => EF.Functions.ILike(x.Name, $"%{req.Query}%") || EF.Functions.ILike(x.Author, $"%{req.Query}%"));
 
         if (req.MinAuthor.HasValue) queryable = queryable.Where(x => x.TimeAuthor >= req.MinAuthor.Value);
         if (req.MaxAuthor.HasValue) queryable = queryable.Where(x => x.TimeAuthor <= req.MaxAuthor.Value);
