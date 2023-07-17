@@ -15,7 +15,6 @@ internal abstract class PopularityJobBase : IJob
     private readonly IMemoryCache cache;
 
     private readonly Dictionary<Level, int> levelToCount;
-    private readonly Dictionary<Level, Record> levelToWorldRecord;
 
     protected PopularityJobBase(GTRContext db, IMemoryCache cache)
     {
@@ -23,14 +22,12 @@ internal abstract class PopularityJobBase : IJob
         this.cache = cache;
 
         levelToCount = new(BasicModelEqualityComparer.Instance);
-        levelToWorldRecord = new(BasicModelEqualityComparer.Instance);
     }
 
     /// <inheritdoc />
     public async Task Execute(IJobExecutionContext context)
     {
         levelToCount.Clear();
-        levelToWorldRecord.Clear();
 
         DateTime stamp = GetStamp();
 
@@ -47,9 +44,6 @@ internal abstract class PopularityJobBase : IJob
         {
             levelToCount.TryAdd(item.Level, 0);
             levelToCount[item.Level]++;
-
-            if (item.Record.IsWr)
-                levelToWorldRecord[item.Level] = item.Record;
         }
 
         List<LevelPopularityResponseModel> ordered = levelToCount
@@ -61,12 +55,11 @@ internal abstract class PopularityJobBase : IJob
         cache.Set(GetCacheKey(), ordered);
     }
 
-    private LevelPopularityResponseModel CreateResponseModel(KeyValuePair<Level, int> item)
+    private static LevelPopularityResponseModel CreateResponseModel(KeyValuePair<Level, int> item)
     {
-        levelToWorldRecord.TryGetValue(item.Key, out Record? record);
-        return new LevelPopularityResponseModel()
+        return new LevelPopularityResponseModel
         {
-            Level = item.Key.ToResponseModel(record),
+            Level = item.Key.ToResponseModel(),
             RecordsCount = item.Value
         };
     }

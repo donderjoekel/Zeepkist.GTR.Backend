@@ -20,7 +20,7 @@ internal class CalculateHotLevelsJob : PopularityJobBase
     /// <inheritdoc />
     protected override int GetTakeCount()
     {
-        return 10;
+        return 100;
     }
 
     /// <inheritdoc />
