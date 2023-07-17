@@ -24,7 +24,7 @@ internal class Endpoint : PopularityBaseEndpoint<LevelsGetHotResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(GenericGetRequestDTO req, CancellationToken ct)
     {
-        List<LevelPopularityResponseModel> levels = await GetLevelsFromCache(req, "hot", ct);
+        List<LevelPopularityResponseModel> levels = await GetLevelsFromCache(req, "hot", 10, ct);
 
         LevelsGetHotResponseDTO response = new()
         {

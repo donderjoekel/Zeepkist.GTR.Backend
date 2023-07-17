@@ -22,13 +22,14 @@ internal class PopularityBaseEndpoint<T> : Endpoint<GenericGetRequestDTO, T>
     protected async Task<List<LevelPopularityResponseModel>> GetLevelsFromCache(
         GenericGetRequestDTO req,
         string key,
+        int defaultLimit,
         CancellationToken ct
     )
     {
         if (!cache.TryGetValue<List<LevelPopularityResponseModel>>(key, out List<LevelPopularityResponseModel>? cached))
             return new List<LevelPopularityResponseModel>();
 
-        int limit = req.Limit ?? 10;
+        int limit = req.Limit ?? defaultLimit;
         int offset = req.Offset ?? 0;
         List<LevelPopularityResponseModel> levels = cached.Skip(offset).Take(limit).ToList();
 
