@@ -1,18 +1,17 @@
-﻿using FastEndpoints;
-using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.Extensions.Caching.Memory;
+using TNRD.Zeepkist.GTR.Database;
+using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Levels.Get.Popular;
 
-internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
+internal class Endpoint : PopularityBaseEndpoint<LevelsGetPopularResponseDTO>
 {
-    private readonly IMemoryCache cache;
-
     /// <inheritdoc />
-    public Endpoint(IMemoryCache cache)
+    public Endpoint(IMemoryCache cache, GTRContext context)
+        : base(cache, context)
     {
-        this.cache = cache;
     }
 
     /// <inheritdoc />
@@ -23,18 +22,14 @@ internal class Endpoint : EndpointWithoutRequest<LevelsGetPopularResponseDTO>
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(GenericGetRequestDTO req, CancellationToken ct)
     {
+        List<LevelPopularityResponseModel> levels = await GetLevelsFromCache(req, "popular", 50, ct);
+
         LevelsGetPopularResponseDTO response = new()
         {
-            Levels = new List<LevelPopularityResponseModel>()
+            Levels = levels
         };
-
-        if (cache.TryGetValue<List<LevelPopularityResponseModel>>("popular",
-                out List<LevelPopularityResponseModel>? cached))
-        {
-            response.Levels = cached!;
-        }
 
         await SendOkAsync(response, ct);
     }

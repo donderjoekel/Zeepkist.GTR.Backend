@@ -34,8 +34,21 @@ internal class Endpoint : Endpoint<LevelsSearchRequestDTO, LevelsSearchResponseD
     /// <inheritdoc />
     public override async Task HandleAsync(LevelsSearchRequestDTO req, CancellationToken ct)
     {
-        IQueryable<Level> queryable = context.Levels.AsNoTracking()
-            .Where(x => EF.Functions.ILike(x.Name, $"%{req.Query}%") || EF.Functions.ILike(x.Author, $"%{req.Query}%"));
+        IQueryable<Level> queryable = context.Levels.AsNoTracking();
+
+        if (req.AuthorOnly.HasValue && req.AuthorOnly.Value)
+        {
+            queryable = queryable.Where(x => EF.Functions.ILike(x.Author, $"%{req.Query}%"));
+        }
+        else if (req.LevelOnly.HasValue && req.LevelOnly.Value)
+        {
+            queryable = queryable.Where(x => EF.Functions.ILike(x.Name, $"%{req.Query}%"));
+        }
+        else
+        {
+            queryable = queryable.Where(x =>
+                EF.Functions.ILike(x.Name, $"%{req.Query}%") || EF.Functions.ILike(x.Author, $"%{req.Query}%"));
+        }
 
         if (req.MinAuthor.HasValue) queryable = queryable.Where(x => x.TimeAuthor >= req.MinAuthor.Value);
         if (req.MaxAuthor.HasValue) queryable = queryable.Where(x => x.TimeAuthor <= req.MaxAuthor.Value);
@@ -69,7 +82,7 @@ internal class Endpoint : Endpoint<LevelsSearchRequestDTO, LevelsSearchResponseD
             },
             ct);
     }
-    
+
     private static IOrderedQueryable<Level> SortQuery(LevelsSearchRequestDTO req, IQueryable<Level> queryable)
     {
         if (string.IsNullOrEmpty(req.Sort))
