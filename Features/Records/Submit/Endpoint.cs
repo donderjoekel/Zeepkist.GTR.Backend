@@ -59,6 +59,13 @@ internal class Endpoint : Endpoint<RequestModel>
             return;
         }
 
+        if (await IsLevelBlocked(req, ct))
+        {
+            Logger.LogInformation("Level is blocked!");
+            await SendOkAsync(ct);
+            return;
+        }
+
         EntityEntry<Record> entry = context.Records.Add(new Record()
         {
             Level = req.Level,
@@ -109,6 +116,18 @@ internal class Endpoint : Endpoint<RequestModel>
             });
 
         await SendOkAsync(ct);
+    }
+
+    private async Task<bool> IsLevelBlocked(RequestModel req, CancellationToken ct)
+    {
+        Level? level = await context.Levels.AsNoTracking()
+            .Where(x => x.Id == req.Level)
+            .FirstOrDefaultAsync(ct);
+
+        if (level == null)
+            return false;
+
+        return level.Blocked ?? false;
     }
 
     private async Task<bool> DoesRecordExist(RequestModel req, CancellationToken ct)
