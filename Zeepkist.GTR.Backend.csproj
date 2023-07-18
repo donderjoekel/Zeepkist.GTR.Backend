@@ -31,7 +31,7 @@
         <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
         <PackageReference Include="StackExchange.Redis" Version="2.6.111" />
         <PackageReference Include="SteamWebAPI2" Version="4.4.0" />
-        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="1.1.0" />
+        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="1.2.0" />
         <PackageReference Include="TNRD.Zeepkist.GTR.DTOs" Version="3.9.0" />
     </ItemGroup>
 
