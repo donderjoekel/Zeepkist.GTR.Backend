@@ -50,14 +50,7 @@ internal class Endpoint : Endpoint<LevelsSearchRequestDTO, LevelsSearchResponseD
                 EF.Functions.ILike(x.Name, $"%{req.Query}%") || EF.Functions.ILike(x.Author, $"%{req.Query}%"));
         }
 
-        if (req.MinAuthor.HasValue) queryable = queryable.Where(x => x.TimeAuthor >= req.MinAuthor.Value);
-        if (req.MaxAuthor.HasValue) queryable = queryable.Where(x => x.TimeAuthor <= req.MaxAuthor.Value);
-        if (req.MinGold.HasValue) queryable = queryable.Where(x => x.TimeGold >= req.MinGold.Value);
-        if (req.MaxGold.HasValue) queryable = queryable.Where(x => x.TimeGold <= req.MaxGold.Value);
-        if (req.MinSilver.HasValue) queryable = queryable.Where(x => x.TimeSilver >= req.MinSilver.Value);
-        if (req.MaxSilver.HasValue) queryable = queryable.Where(x => x.TimeSilver <= req.MaxSilver.Value);
-        if (req.MinBronze.HasValue) queryable = queryable.Where(x => x.TimeBronze >= req.MinBronze.Value);
-        if (req.MaxBronze.HasValue) queryable = queryable.Where(x => x.TimeBronze <= req.MaxBronze.Value);
+        queryable = HandleMinMaxQueries(req, queryable);
 
         IOrderedQueryable<Level> sortedQuery = SortQuery(req, queryable);
 
@@ -81,6 +74,31 @@ internal class Endpoint : Endpoint<LevelsSearchRequestDTO, LevelsSearchResponseD
                 Levels = items.Select(x => x.Level.ToResponseModel(x.WorldRecord)).ToList()
             },
             ct);
+    }
+
+    private static IQueryable<Level> HandleMinMaxQueries(LevelsSearchRequestDTO req, IQueryable<Level> queryable)
+    {
+        if (req.MinAuthor.HasValue)
+            queryable = queryable.Where(x => x.TimeAuthor >= req.MinAuthor.Value);
+        if (req.MaxAuthor.HasValue)
+            queryable = queryable.Where(x => x.TimeAuthor <= req.MaxAuthor.Value);
+        if (req.MinGold.HasValue)
+            queryable = queryable.Where(x => x.TimeGold >= req.MinGold.Value);
+        if (req.MaxGold.HasValue)
+            queryable = queryable.Where(x => x.TimeGold <= req.MaxGold.Value);
+        if (req.MinSilver.HasValue)
+            queryable = queryable.Where(x => x.TimeSilver >= req.MinSilver.Value);
+        if (req.MaxSilver.HasValue)
+            queryable = queryable.Where(x => x.TimeSilver <= req.MaxSilver.Value);
+        if (req.MinBronze.HasValue)
+            queryable = queryable.Where(x => x.TimeBronze >= req.MinBronze.Value);
+        if (req.MaxBronze.HasValue)
+            queryable = queryable.Where(x => x.TimeBronze <= req.MaxBronze.Value);
+        if (req.MinPoints.HasValue)
+            queryable = queryable.Where(x => x.Points >= req.MinPoints.Value);
+        if (req.MaxPoints.HasValue)
+            queryable = queryable.Where(x => x.Points <= req.MaxPoints.Value);
+        return queryable;
     }
 
     private static IOrderedQueryable<Level> SortQuery(LevelsSearchRequestDTO req, IQueryable<Level> queryable)
