@@ -9,20 +9,39 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Get.All;
 
 internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
 {
-    private static readonly Dictionary<string, string> sortingMap =
-        new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
+    private record SortingMethod(string Key, Func<IQueryable<Record>, IQueryable<Record>> Method)
+    {
+        public IQueryable<Record> Process(string input, IQueryable<Record> query)
         {
-            { "id", "id" },
-            { "levelId", "level.id" },
-            { "levelUid", "level.uid" },
-            { "levelWorkshopId", "level.wid" },
-            { "userId", "user.id" },
-            { "userSteamId", "user.steam_id" },
-            { "time", "time" },
-            { "timeAuthor", "level.time_author" },
-            { "timeGold", "level.time_gold" },
-            { "timeSilver", "level.time_silver" },
-            { "timeBronze", "level.time_bronze" },
+            return Key.Equals(input, StringComparison.InvariantCultureIgnoreCase) ? Method(query) : query;
+        }
+    }
+
+    private static readonly HashSet<SortingMethod> sortingMethods =
+        new()
+        {
+            new SortingMethod("id", query => query.OrderBy(x => x.Id)),
+            new SortingMethod("-id", query => query.OrderByDescending(x => x.Id)),
+            new SortingMethod("levelId", query => query.OrderBy(x => x.Level)),
+            new SortingMethod("-levelId", query => query.OrderByDescending(x => x.Level)),
+            new SortingMethod("levelUid", query => query.OrderBy(x => x.LevelNavigation!.Uid)),
+            new SortingMethod("-levelUid", query => query.OrderByDescending(x => x.LevelNavigation!.Uid)),
+            new SortingMethod("levelWorkshopId", query => query.OrderBy(x => x.LevelNavigation!.Wid)),
+            new SortingMethod("-levelWorkshopId", query => query.OrderByDescending(x => x.LevelNavigation!.Wid)),
+            new SortingMethod("userId", query => query.OrderBy(x => x.User)),
+            new SortingMethod("-userId", query => query.OrderByDescending(x => x.User)),
+            new SortingMethod("userSteamId", query => query.OrderBy(x => x.UserNavigation!.SteamId)),
+            new SortingMethod("-userSteamId", query => query.OrderByDescending(x => x.UserNavigation!.SteamId)),
+            new SortingMethod("time", query => query.OrderBy(x => x.Time)),
+            new SortingMethod("-time", query => query.OrderByDescending(x => x.Time)),
+            new SortingMethod("timeAuthor", query => query.OrderBy(x => x.LevelNavigation!.TimeAuthor)),
+            new SortingMethod("-timeAuthor", query => query.OrderByDescending(x => x.LevelNavigation!.TimeAuthor)),
+            new SortingMethod("timeGold", query => query.OrderBy(x => x.LevelNavigation!.TimeGold)),
+            new SortingMethod("-timeGold", query => query.OrderByDescending(x => x.LevelNavigation!.TimeGold)),
+            new SortingMethod("timeSilver", query => query.OrderBy(x => x.LevelNavigation!.TimeSilver)),
+            new SortingMethod("-timeSilver", query => query.OrderByDescending(x => x.LevelNavigation!.TimeSilver)),
+            new SortingMethod("timeBronze", query => query.OrderBy(x => x.LevelNavigation!.TimeBronze)),
+            new SortingMethod("-timeBronze", query => query.OrderByDescending(x => x.LevelNavigation!.TimeBronze)),
         };
 
     private readonly GTRContext context;
@@ -86,7 +105,7 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
         if (req.MaximumTime.HasValue)
             query = query.Where(x => x.Time <= req.MaximumTime.Value);
 
-        if (req.InvalidOnly == true) 
+        if (req.InvalidOnly == true)
             query = query.Where(x => x.IsValid == false);
         else
         {
@@ -97,39 +116,21 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             if (req.WorldRecordOnly == true)
                 query = query.Where(x => x.IsWr == true);
         }
-        
+
         if (!string.IsNullOrEmpty(req.Sort))
         {
             string[] splits = req.Sort.Split(',');
             foreach (string split in splits)
             {
-                query = split switch
+                foreach (SortingMethod sortingMethod in sortingMethods)
                 {
-                    "id" => query.OrderBy(x => x.Id),
-                    "-id" => query.OrderByDescending(x => x.Id),
-                    "levelId" => query.OrderBy(x => x.LevelNavigation!.Id),
-                    "-levelId" => query.OrderByDescending(x => x.LevelNavigation!.Id),
-                    "levelUid" => query.OrderBy(x => x.LevelNavigation!.Uid),
-                    "-levelUid" => query.OrderByDescending(x => x.LevelNavigation!.Uid),
-                    "levelWorkshopId" => query.OrderBy(x => x.LevelNavigation!.Wid),
-                    "-levelWorkshopId" => query.OrderByDescending(x => x.LevelNavigation!.Wid),
-                    "userId" => query.OrderBy(x => x.UserNavigation!.Id),
-                    "-userId" => query.OrderByDescending(x => x.UserNavigation!.Id),
-                    "userSteamId" => query.OrderBy(x => x.UserNavigation!.SteamId),
-                    "-userSteamId" => query.OrderByDescending(x => x.UserNavigation!.SteamId),
-                    "time" => query.OrderBy(x => x.Time),
-                    "-time" => query.OrderByDescending(x => x.Time),
-                    "timeAuthor" => query.OrderBy(x => x.LevelNavigation!.TimeAuthor),
-                    "-timeAuthor" => query.OrderByDescending(x => x.LevelNavigation!.TimeAuthor),
-                    "timeGold" => query.OrderBy(x => x.LevelNavigation!.TimeGold),
-                    "-timeGold" => query.OrderByDescending(x => x.LevelNavigation!.TimeGold),
-                    "timeSilver" => query.OrderBy(x => x.LevelNavigation!.TimeSilver),
-                    "-timeSilver" => query.OrderByDescending(x => x.LevelNavigation!.TimeSilver),
-                    "timeBronze" => query.OrderBy(x => x.LevelNavigation!.TimeBronze),
-                    "-timeBronze" => query.OrderByDescending(x => x.LevelNavigation!.TimeBronze),
-                    _ => query
-                };
+                    sortingMethod.Process(split, query);
+                }
             }
+        }
+        else
+        {
+            query = query.OrderBy(x => x.Level).ThenBy(x => x.Time);
         }
 
         int total = await query.CountAsync(ct);
