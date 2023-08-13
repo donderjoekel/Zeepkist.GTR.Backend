@@ -98,6 +98,8 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             query = query.Where(x => x.LevelNavigation!.Wid == req.LevelWorkshopId);
         if (!string.IsNullOrEmpty(req.UserSteamId))
             query = query.Where(x => x.UserNavigation!.SteamId == req.UserSteamId);
+        if (req.UserId.HasValue)
+            query = query.Where(x => x.User == req.UserId);
         if (!string.IsNullOrEmpty(req.GameVersion))
             query = query.Where(x => x.GameVersion == req.GameVersion);
         if (req.MinimumTime.HasValue)
