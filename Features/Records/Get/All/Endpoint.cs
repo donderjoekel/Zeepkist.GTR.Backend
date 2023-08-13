@@ -1,18 +1,14 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
+using TNRD.Zeepkist.GTR.Database;
+using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
-using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Get.All;
 
 internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
 {
-    private readonly IDirectusClient client;
-
     private static readonly Dictionary<string, string> sortingMap =
         new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
         {
@@ -29,10 +25,12 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             { "timeBronze", "level.time_bronze" },
         };
 
+    private readonly GTRContext context;
+
     /// <inheritdoc />
-    public Endpoint(IDirectusClient client)
+    public Endpoint(GTRContext context)
     {
-        this.client = client;
+        this.context = context;
     }
 
     /// <inheritdoc />
@@ -69,111 +67,86 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(RecordsGetRequestDTO req, CancellationToken ct)
     {
-        RecordsApi api = new RecordsApi(client);
+        IQueryable<Record> query = context.Records.AsNoTracking()
+            .Include(x => x.LevelNavigation)
+            .Include(x => x.UserNavigation);
 
-        Result<DirectusGetMultipleResponse<RecordModel>> result = await api.Get(filter =>
+        if (req.LevelId.HasValue)
+            query = query.Where(x => x.Level == req.LevelId.Value);
+        if (!string.IsNullOrEmpty(req.LevelUid))
+            query = query.Where(x => x.LevelNavigation!.Uid == req.LevelUid);
+        if (!string.IsNullOrEmpty(req.LevelWorkshopId))
+            query = query.Where(x => x.LevelNavigation!.Wid == req.LevelWorkshopId);
+        if (!string.IsNullOrEmpty(req.UserSteamId))
+            query = query.Where(x => x.UserNavigation!.SteamId == req.UserSteamId);
+        if (!string.IsNullOrEmpty(req.GameVersion))
+            query = query.Where(x => x.GameVersion == req.GameVersion);
+        if (req.MinimumTime.HasValue)
+            query = query.Where(x => x.Time >= req.MinimumTime.Value);
+        if (req.MaximumTime.HasValue)
+            query = query.Where(x => x.Time <= req.MaximumTime.Value);
+
+        if (req.InvalidOnly == true) 
+            query = query.Where(x => x.IsValid == false);
+        else
+        {
+            if (req.ValidOnly == true)
+                query = query.Where(x => x.IsValid == true);
+            if (req.BestOnly == true)
+                query = query.Where(x => x.IsBest == true);
+            if (req.WorldRecordOnly == true)
+                query = query.Where(x => x.IsWr == true);
+        }
+        
+        if (!string.IsNullOrEmpty(req.Sort))
+        {
+            string[] splits = req.Sort.Split(',');
+            foreach (string split in splits)
             {
-                filter
-                    .WithUserId(req.UserId)
-                    .WithUserSteamId(req.UserSteamId)
-                    .WithGameVersion(req.GameVersion)
-                    .WithLevelId(req.LevelId)
-                    .WithLevelUid(req.LevelUid)
-                    .WithLevelWid(req.LevelWorkshopId);
-
-                if (req.InvalidOnly == true)
+                query = split switch
                 {
-                    filter.WithInvalidOnly();
-                }
-                else
-                {
-                    if (req.BestOnly.HasValue && req.BestOnly.Value)
-                    {
-                        filter.WithBestOnly(true);
-                    }
-                    
-                    if (req.ValidOnly.HasValue && req.ValidOnly.Value)
-                    {
-                        filter.WithValidOnly(true);
-                    }
-                    
-                    if (req.WorldRecordOnly.HasValue && req.WorldRecordOnly.Value)
-                    {
-                        filter.WithWorldRecordOnly(true);
-                    }
-                }
+                    "id" => query.OrderBy(x => x.Id),
+                    "-id" => query.OrderByDescending(x => x.Id),
+                    "levelId" => query.OrderBy(x => x.LevelNavigation!.Id),
+                    "-levelId" => query.OrderByDescending(x => x.LevelNavigation!.Id),
+                    "levelUid" => query.OrderBy(x => x.LevelNavigation!.Uid),
+                    "-levelUid" => query.OrderByDescending(x => x.LevelNavigation!.Uid),
+                    "levelWorkshopId" => query.OrderBy(x => x.LevelNavigation!.Wid),
+                    "-levelWorkshopId" => query.OrderByDescending(x => x.LevelNavigation!.Wid),
+                    "userId" => query.OrderBy(x => x.UserNavigation!.Id),
+                    "-userId" => query.OrderByDescending(x => x.UserNavigation!.Id),
+                    "userSteamId" => query.OrderBy(x => x.UserNavigation!.SteamId),
+                    "-userSteamId" => query.OrderByDescending(x => x.UserNavigation!.SteamId),
+                    "time" => query.OrderBy(x => x.Time),
+                    "-time" => query.OrderByDescending(x => x.Time),
+                    "timeAuthor" => query.OrderBy(x => x.LevelNavigation!.TimeAuthor),
+                    "-timeAuthor" => query.OrderByDescending(x => x.LevelNavigation!.TimeAuthor),
+                    "timeGold" => query.OrderBy(x => x.LevelNavigation!.TimeGold),
+                    "-timeGold" => query.OrderByDescending(x => x.LevelNavigation!.TimeGold),
+                    "timeSilver" => query.OrderBy(x => x.LevelNavigation!.TimeSilver),
+                    "-timeSilver" => query.OrderByDescending(x => x.LevelNavigation!.TimeSilver),
+                    "timeBronze" => query.OrderBy(x => x.LevelNavigation!.TimeBronze),
+                    "-timeBronze" => query.OrderByDescending(x => x.LevelNavigation!.TimeBronze),
+                    _ => query
+                };
+            }
+        }
 
-                filter
-                    .WithTime(req.MinimumTime, req.MaximumTime)
-                    .WithSort(MapAndBuildSort(req))
-                    .WithLimit(req.Limit)
-                    .WithOffset(req.Offset);
+        int total = await query.CountAsync(ct);
+
+        int limit = req.Limit ?? 100;
+        int offset = req.Offset ?? 0;
+
+        List<Record> records = await query
+            .Skip(offset)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        await SendOkAsync(new RecordsGetResponseDTO()
+            {
+                TotalAmount = total,
+                Records = records.Select(x => x.ToResponseModel()).ToList(),
             },
             ct);
-
-        if (result.IsFailed)
-        {
-            Logger.LogError("Unable to get records: {Result}", result.ToString());
-            ThrowError("Unable to get records");
-        }
-
-        List<RecordResponseModel> records = new();
-
-        foreach (RecordModel model in result.Value.Data)
-        {
-            records.Add(model);
-        }
-
-        RecordsGetResponseDTO responseModel = new RecordsGetResponseDTO()
-        {
-            TotalAmount = result.Value.Metadata!.FilterCount!.Value,
-            Records = records,
-        };
-
-        await SendAsync(responseModel, cancellation: ct);
-    }
-
-    private static string MapAndBuildSort(RecordsGetRequestDTO req)
-    {
-        if (string.IsNullOrEmpty(req.Sort))
-        {
-            return "level.id,time";
-        }
-
-        string[] splits = req.Sort.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-        List<string> sorts = new List<string>();
-
-        foreach (string split in splits)
-        {
-            bool isNegative = false;
-            string? s = split;
-
-            if (s.StartsWith('-'))
-            {
-                isNegative = true;
-                s = s.Substring(1);
-            }
-
-            s = MapSort(s);
-
-            if (string.IsNullOrEmpty(s))
-                continue;
-
-            if (isNegative)
-                s = "-" + s;
-
-            sorts.Add(s);
-        }
-
-        return string.Join(',', sorts);
-    }
-
-    private static string? MapSort(string input)
-    {
-        if (sortingMap.TryGetValue(input, out string? output))
-            return output;
-
-        return null;
     }
 }
