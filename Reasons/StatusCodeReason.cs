@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using FluentResults;
 
-namespace TNRD.Zeepkist.GTR.Backend.Directus;
+namespace TNRD.Zeepkist.GTR.Backend.Reasons;
 
 internal class StatusCodeReason : IReason
 {

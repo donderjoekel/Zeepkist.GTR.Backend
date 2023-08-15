@@ -1,13 +1,7 @@
-﻿using System.Security.Claims;
-using FastEndpoints;
-using FluentResults;
-using Microsoft.EntityFrameworkCore;
+﻿using FastEndpoints;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Factories;
-using TNRD.Zeepkist.GTR.Backend.Extensions;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Users.Discord;
