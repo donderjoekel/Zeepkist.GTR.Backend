@@ -5,6 +5,7 @@ using FastEndpoints.Swagger;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Quartz;
+using Quartz.AspNetCore;
 using Serilog;
 using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
