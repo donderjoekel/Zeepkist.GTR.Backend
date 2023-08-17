@@ -26,7 +26,7 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersGetAllResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(GenericGetRequestDTO req, CancellationToken ct)
     {
-        IQueryable<User> query = context.Users.AsNoTracking();
+        IQueryable<User> query = context.Users.AsNoTracking().Include(x => x.StatsNavigation);
         int count = query.Count();
         List<User> users = await query
             .Skip(req.Offset ?? 0)

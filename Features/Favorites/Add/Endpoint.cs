@@ -1,13 +1,8 @@
 ﻿using FastEndpoints;
-using FluentResults;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Api;
-using TNRD.Zeepkist.GTR.Backend.Extensions;
-using TNRD.Zeepkist.GTR.DTOs.Internal.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 

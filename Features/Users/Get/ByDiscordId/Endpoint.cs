@@ -27,6 +27,7 @@ internal class Endpoint : Endpoint<UsersGetByDiscordIdRequestDTO, UserResponseMo
     public override async Task HandleAsync(UsersGetByDiscordIdRequestDTO req, CancellationToken ct)
     {
         User? user = await context.Users.AsNoTracking()
+            .Include(x => x.StatsNavigation)
             .FirstOrDefaultAsync(u => u.DiscordId == req.DiscordId, ct);
 
         if (user == null)

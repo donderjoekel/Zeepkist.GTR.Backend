@@ -27,6 +27,7 @@ internal class Endpoint : Endpoint<UsersGetBySteamIdRequestDTO, UserResponseMode
     public override async Task HandleAsync(UsersGetBySteamIdRequestDTO req, CancellationToken ct)
     {
         User? user = await context.Users.AsNoTracking()
+            .Include(x => x.StatsNavigation)
             .FirstOrDefaultAsync(x => x.SteamId == req.SteamId, ct);
 
         if (user != null)

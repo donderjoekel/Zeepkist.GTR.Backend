@@ -126,7 +126,7 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             {
                 foreach (SortingMethod sortingMethod in sortingMethods)
                 {
-                    sortingMethod.Process(split, query);
+                    query = sortingMethod.Process(split, query);
                 }
             }
         }

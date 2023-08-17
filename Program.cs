@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Text.Json;
 using FastEndpoints;
 using FastEndpoints.Security;
@@ -6,11 +5,10 @@ using FastEndpoints.Swagger;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Quartz;
+using Quartz.AspNetCore;
 using Serilog;
 using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
-using TNRD.Zeepkist.GTR.Backend.Directus;
-using TNRD.Zeepkist.GTR.Backend.Directus.Options;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
 using TNRD.Zeepkist.GTR.Backend.Jobs;
@@ -69,7 +67,6 @@ internal class Program
         });
 
         builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
-        builder.Services.Configure<DirectusOptions>(builder.Configuration.GetSection("Directus"));
         builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("Steam"));
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
         builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("Rabbit"));
@@ -79,6 +76,7 @@ internal class Program
 
         builder.Host.UseConsoleLifetime(options => options.SuppressStatusMessages = true);
 
+        builder.Services.AddHttpClient();
         builder.Services.AddAuthentication();
         builder.Services.AddAuthorization();
         builder.Services.AddFastEndpoints();
@@ -86,11 +84,7 @@ internal class Program
         builder.Services.AddCors();
         builder.Services.AddSwaggerDoc(b => { b.Title = "Zeepkist GTR"; }, addJWTBearerAuth: false);
 
-        builder.Services.AddHttpClient("directus", ConfigureDirectusClient);
-
-        builder.Services.AddSingleton<IDirectusClient, DirectusClient>();
         builder.Services.AddSingleton<IGoogleUploadService, CloudStorageUploadService>();
-
         builder.Services.AddSingleton<SteamWebInterfaceFactory>(provider =>
         {
             SteamOptions steamOptions = provider.GetRequiredService<IOptions<SteamOptions>>().Value;
@@ -177,15 +171,5 @@ internal class Program
             throw new NullReferenceException("SigningKey is null or empty");
 
         return authOptions.SigningKey;
-    }
-
-    private static void ConfigureDirectusClient(IServiceProvider provider, HttpClient client)
-    {
-        DirectusOptions options = provider.GetRequiredService<IOptions<DirectusOptions>>().Value;
-
-        string baseUrl = $"http://{options.BaseUrl}:{options.Port}";
-
-        client.BaseAddress = new Uri(baseUrl);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.Token);
     }
 }

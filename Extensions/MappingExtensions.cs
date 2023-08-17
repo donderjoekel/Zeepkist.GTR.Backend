@@ -36,7 +36,7 @@ internal static class MappingExtensions
         return responseModel;
     }
 
-    public static UserResponseModel ToResponseModel(this User user)
+    public static UserResponseModel ToResponseModel(this User user, StatsResponseModel? stat = null)
     {
         return new UserResponseModel
         {
@@ -46,7 +46,9 @@ internal static class MappingExtensions
             SteamName = user.SteamName,
             // Bit hacky, should probably just fix the backend to use integer instead of float
             Score = user.Score.HasValue ? (int)Math.Floor(user.Score.Value) : 0,
-            Position = user.Position
+            Position = user.Position,
+            Stats = stat ?? user.StatsNavigation?.ToResponseModel() ??
+                (user.Stats.HasValue ? new StatsResponseModel { Id = user.Stats.Value } : null)
         };
     }
 
@@ -124,6 +126,55 @@ internal static class MappingExtensions
             IsBest = record.IsBest,
             ScreenshotUrl = record.ScreenshotUrl,
             IsWorldRecord = record.IsWr
+        };
+    }
+
+    public static StatsResponseModel ToResponseModel(this Stat stat)
+    {
+        return new StatsResponseModel
+        {
+            Id = stat.Id,
+            CrashEye = stat.CrashEye,
+            CrashGhost = stat.CrashGhost,
+            CrashRegular = stat.CrashRegular,
+            CrashTotal = stat.CrashTotal,
+            CrashSticky = stat.CrashSticky,
+            DistanceBraking = stat.DistanceBraking,
+            DistanceGrounded = stat.DistanceGrounded,
+            DistanceRagdoll = stat.DistanceRagdoll,
+            DistanceArmsUp = stat.DistanceArmsUp,
+            DistanceInAir = stat.DistanceInAir,
+            DistanceOnGrass = stat.DistanceOnGrass,
+            DistanceOnIce = stat.DistanceOnIce,
+            DistanceOnRegular = stat.DistanceOnRegular,
+            DistanceOnFourWheels = stat.DistanceOnFourWheels,
+            DistanceOnNoWheels = stat.DistanceOnNoWheels,
+            DistanceOnOneWheel = stat.DistanceOnOneWheel,
+            DistanceOnThreeWheels = stat.DistanceOnThreeWheels,
+            DistanceOnTwoWheels = stat.DistanceOnTwoWheels,
+            DistanceWithFourWheels = stat.DistanceWithFourWheels,
+            DistanceWithNoWheels = stat.DistanceWithNoWheels,
+            DistanceWithOneWheel = stat.DistanceWithOneWheel,
+            DistanceWithThreeWheels = stat.DistanceWithThreeWheels,
+            DistanceWithTwoWheels = stat.DistanceWithTwoWheels,
+            TimeBraking = stat.TimeBraking,
+            TimeGrounded = stat.TimeGrounded,
+            TimeRagdoll = stat.TimeRagdoll,
+            TimeArmsUp = stat.TimeArmsUp,
+            TimeInAir = stat.TimeInAir,
+            TimeOnGrass = stat.TimeOnGrass,
+            TimeOnIce = stat.TimeOnIce,
+            TimeOnRegular = stat.TimeOnRegular,
+            TimeOnFourWheels = stat.TimeOnFourWheels,
+            TimeOnNoWheels = stat.TimeOnNoWheels,
+            TimeOnOneWheel = stat.TimeOnOneWheel,
+            TimeOnThreeWheels = stat.TimeOnThreeWheels,
+            TimeOnTwoWheels = stat.TimeOnTwoWheels,
+            TimeWithFourWheels = stat.TimeWithFourWheels,
+            TimeWithNoWheels = stat.TimeWithNoWheels,
+            TimeWithOneWheel = stat.TimeWithOneWheel,
+            TimeWithThreeWheels = stat.TimeWithThreeWheels,
+            TimeWithTwoWheels = stat.TimeWithTwoWheels,
         };
     }
 }

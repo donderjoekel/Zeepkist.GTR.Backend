@@ -1,5 +1,4 @@
 ﻿using FastEndpoints;
-using TNRD.Zeepkist.GTR.Backend.Directus;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
