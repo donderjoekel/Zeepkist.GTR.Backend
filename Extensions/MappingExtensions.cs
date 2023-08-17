@@ -48,7 +48,7 @@ internal static class MappingExtensions
             Score = user.Score.HasValue ? (int)Math.Floor(user.Score.Value) : 0,
             Position = user.Position,
             Stats = stat ?? user.StatsNavigation?.ToResponseModel() ??
-                new StatsResponseModel() { Id = user.Stats!.Value }
+                (user.Stats.HasValue ? new StatsResponseModel { Id = user.Stats.Value } : null)
         };
     }
 
