@@ -110,6 +110,10 @@ public class Endpoint : Endpoint<UsersUpdateStatsRequestDTO>
             TimeOnRegular = req.TimeOnRegular,
             TimeOnGrass = req.TimeOnGrass,
             TimeOnIce = req.TimeOnIce,
+            TimesFinished = req.TimesFinished,
+            TimesStarted = req.TimesStarted,
+            WheelsBroken = req.WheelsBroken,
+            CheckpointsCrossed = req.CheckpointsCrossed
         };
 
         return stat;
@@ -158,5 +162,9 @@ public class Endpoint : Endpoint<UsersUpdateStatsRequestDTO>
         stats.TimeOnRegular += req.TimeOnRegular;
         stats.TimeOnGrass += req.TimeOnGrass;
         stats.TimeOnIce += req.TimeOnIce;
+        stats.TimesFinished += req.TimesFinished;
+        stats.TimesStarted += req.TimesStarted;
+        stats.WheelsBroken += req.WheelsBroken;
+        stats.CheckpointsCrossed += req.CheckpointsCrossed;
     }
 }

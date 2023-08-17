@@ -175,6 +175,10 @@ internal static class MappingExtensions
             TimeWithOneWheel = stat.TimeWithOneWheel,
             TimeWithThreeWheels = stat.TimeWithThreeWheels,
             TimeWithTwoWheels = stat.TimeWithTwoWheels,
+            TimesFinished = stat.TimesFinished,
+            TimesStarted = stat.TimesStarted,
+            WheelsBroken = stat.WheelsBroken,
+            CheckpointsCrossed = stat.CheckpointsCrossed
         };
     }
 }
