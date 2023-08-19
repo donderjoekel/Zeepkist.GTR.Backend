@@ -27,7 +27,6 @@ internal class Endpoint : Endpoint<GenericIdRequestDTO, UserResponseModel>
     public override async Task HandleAsync(GenericIdRequestDTO req, CancellationToken ct)
     {
         User? user = await context.Users.AsNoTracking()
-            .Include(x => x.StatsNavigation)
             .FirstOrDefaultAsync(x => x.Id == req.Id, ct);
 
         if (user != null)

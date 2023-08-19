@@ -1,11 +1,10 @@
 ﻿using FastEndpoints;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 
-namespace TNRD.Zeepkist.GTR.Backend.Features.Users.Stats;
+namespace TNRD.Zeepkist.GTR.Backend.Features.Stats.Submit;
 
 public class Endpoint : Endpoint<UsersUpdateStatsRequestDTO>
 {
@@ -18,7 +17,7 @@ public class Endpoint : Endpoint<UsersUpdateStatsRequestDTO>
 
     public override void Configure()
     {
-        Post("users/stats");
+        Post("stats");
         Description(x => x.ExcludeFromDescription());
     }
 
@@ -30,42 +29,32 @@ public class Endpoint : Endpoint<UsersUpdateStatsRequestDTO>
             return;
         }
 
-        User? user = await context.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
-        if (user == null)
+        if (!await context.Users.AnyAsync(x => x.Id == userId, ct))
         {
             await SendNotFoundAsync(ct);
             return;
         }
 
-        if (user.Stats == null)
+        Stat? existingStat = await context.Stats.FirstOrDefaultAsync(x =>
+                x.User == userId && x.Month == DateTime.UtcNow.Month && x.Year == DateTime.UtcNow.Year,
+            ct);
+
+        if (existingStat == null)
         {
-            Stat stat = CreateNewStat(req);
-
-            EntityEntry<Stat> entry = await context.Stats.AddAsync(stat, ct);
+            Stat stat = CreateNewStat(req, userId);
+            await context.Stats.AddAsync(stat, ct);
             await context.SaveChangesAsync(ct);
-
-            user.Stats = entry.Entity.Id;
+        }
+        else
+        {
+            UpdateStats(existingStat, req);
             await context.SaveChangesAsync(ct);
-
-            await SendOkAsync(ct);
-            return;
         }
 
-        Stat? stats = await context.Stats.FirstOrDefaultAsync(x => x.Id == user.Stats, ct);
-        if (stats == null)
-        {
-            Logger.LogError("Unable to find stats for user {UserId}", userId);
-            await SendNotFoundAsync(ct);
-            return;
-        }
-
-        UpdateStats(stats, req);
-
-        await context.SaveChangesAsync(ct);
         await SendOkAsync(ct);
     }
 
-    private static Stat CreateNewStat(UsersUpdateStatsRequestDTO req)
+    private static Stat CreateNewStat(UsersUpdateStatsRequestDTO req, int userId)
     {
         Stat stat = new()
         {
@@ -113,7 +102,10 @@ public class Endpoint : Endpoint<UsersUpdateStatsRequestDTO>
             TimesFinished = req.TimesFinished,
             TimesStarted = req.TimesStarted,
             WheelsBroken = req.WheelsBroken,
-            CheckpointsCrossed = req.CheckpointsCrossed
+            CheckpointsCrossed = req.CheckpointsCrossed,
+            User = userId,
+            Month = DateTime.UtcNow.Month,
+            Year = DateTime.UtcNow.Year,
         };
 
         return stat;

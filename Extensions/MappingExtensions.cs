@@ -46,9 +46,7 @@ internal static class MappingExtensions
             SteamName = user.SteamName,
             // Bit hacky, should probably just fix the backend to use integer instead of float
             Score = user.Score.HasValue ? (int)Math.Floor(user.Score.Value) : 0,
-            Position = user.Position,
-            Stats = stat ?? user.StatsNavigation?.ToResponseModel() ??
-                (user.Stats.HasValue ? new StatsResponseModel { Id = user.Stats.Value } : null)
+            Position = user.Position
         };
     }
 
@@ -129,7 +127,7 @@ internal static class MappingExtensions
         };
     }
 
-    public static StatsResponseModel ToResponseModel(this Stat stat)
+    public static StatsResponseModel ToResponseModel(this Stat stat, UserResponseModel? user = null)
     {
         return new StatsResponseModel
         {
@@ -178,7 +176,10 @@ internal static class MappingExtensions
             TimesFinished = stat.TimesFinished,
             TimesStarted = stat.TimesStarted,
             WheelsBroken = stat.WheelsBroken,
-            CheckpointsCrossed = stat.CheckpointsCrossed
+            CheckpointsCrossed = stat.CheckpointsCrossed,
+            Month = stat.Month,
+            Year = stat.Year,
+            User = user ?? stat.UserNavigation?.ToResponseModel() ?? new UserResponseModel { Id = stat.User }
         };
     }
 }
