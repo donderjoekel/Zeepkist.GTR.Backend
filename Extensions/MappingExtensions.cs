@@ -131,7 +131,6 @@ internal static class MappingExtensions
     {
         return new StatsResponseModel
         {
-            Id = stat.Id,
             CrashEye = stat.CrashEye,
             CrashGhost = stat.CrashGhost,
             CrashRegular = stat.CrashRegular,
@@ -179,7 +178,6 @@ internal static class MappingExtensions
             CheckpointsCrossed = stat.CheckpointsCrossed,
             Month = stat.Month,
             Year = stat.Year,
-            User = user ?? stat.UserNavigation?.ToResponseModel() ?? new UserResponseModel { Id = stat.User }
         };
     }
 }

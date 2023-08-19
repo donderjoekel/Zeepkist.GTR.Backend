@@ -5,9 +5,9 @@ using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseModels;
 
-namespace TNRD.Zeepkist.GTR.Backend.Features.Stats.Aggregate;
+namespace TNRD.Zeepkist.GTR.Backend.Features.Stats.Get;
 
-public class Endpoint : Endpoint<StatsAggregateRequestDTO, StatsResponseModel>
+public class Endpoint : Endpoint<StatsGetRequestDTO, StatsResponseModel>
 {
     private readonly GTRContext context;
 
@@ -18,21 +18,29 @@ public class Endpoint : Endpoint<StatsAggregateRequestDTO, StatsResponseModel>
 
     public override void Configure()
     {
-        Get("stats/aggregate");
+        Get("stats");
         AllowAnonymous();
     }
 
-    public override async Task HandleAsync(StatsAggregateRequestDTO req, CancellationToken ct)
+    public override async Task HandleAsync(StatsGetRequestDTO req, CancellationToken ct)
     {
-        IQueryable<Stat> query = context.Stats.AsNoTracking();
+        if (!await context.Users.AsNoTracking().AnyAsync(x => x.Id == req.UserId, ct))
+        {
+            await SendNotFoundAsync(ct);
+            return;
+        }
+
+        IQueryable<Stat> query = context.Stats
+            .AsNoTracking()
+            .Where(x => x.User == req.UserId);
 
         if (req.Month.HasValue)
             query = query.Where(x => x.Month == req.Month);
         if (req.Year.HasValue)
             query = query.Where(x => x.Year == req.Year);
 
-        Stat? summed = await query.GroupBy(x => 1)
-            .Select(x => new Stat
+        Stat? stat = await query.GroupBy(x => 1)
+            .Select(x => new Stat()
             {
                 CrashTotal = x.Sum(y => y.CrashTotal),
                 CrashRegular = x.Sum(y => y.CrashRegular),
@@ -79,12 +87,18 @@ public class Endpoint : Endpoint<StatsAggregateRequestDTO, StatsResponseModel>
                 TimesStarted = x.Sum(y => y.TimesStarted),
                 WheelsBroken = x.Sum(y => y.WheelsBroken),
                 CheckpointsCrossed = x.Sum(y => y.CheckpointsCrossed),
-            })
-            .FirstOrDefaultAsync(ct) ?? new Stat();
+            }).FirstOrDefaultAsync(ct);
 
-        summed.Month = req.Month ?? -1;
-        summed.Year = req.Year ?? -1;
+        if (stat == null)
+        {
+            await SendNotFoundAsync(ct);
+        }
+        else
+        {
+            stat.Month = req.Month ?? -1;
+            stat.Year = req.Year ?? -1;
 
-        await SendOkAsync(summed.ToResponseModel(), ct);
+            await SendOkAsync(stat.ToResponseModel(), ct);
+        }
     }
 }
