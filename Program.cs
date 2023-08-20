@@ -10,6 +10,7 @@ using NLog.Config;
 using Quartz;
 using Quartz.AspNetCore;
 using Serilog;
+using Serilog.Events;
 using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
@@ -38,9 +39,8 @@ internal class Program
         builder.Host.UseSerilog((context, configuration) =>
         {
             configuration
-                .WriteTo.Console()
-                .WriteTo.NLog()
-                .MinimumLevel.Debug();
+                .WriteTo.Console(LogEventLevel.Debug)
+                .WriteTo.NLog(LogEventLevel.Information);
         });
 
         AddServices(builder);
