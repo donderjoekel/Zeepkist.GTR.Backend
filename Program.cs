@@ -36,6 +36,7 @@ internal class Program
         {
             configuration
                 .Enrich.FromLogContext()
+                .Enrich.WithProperty("Source", "Backend")
                 .MinimumLevel.Debug()
                 .WriteTo.Seq(context.Configuration["Seq:Url"], apiKey: context.Configuration["Seq:Key"])
                 .WriteTo.Console(LogEventLevel.Debug);
