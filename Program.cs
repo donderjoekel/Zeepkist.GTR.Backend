@@ -39,6 +39,7 @@ internal class Program
         builder.Host.UseSerilog((context, configuration) =>
         {
             configuration
+                .MinimumLevel.Debug()
                 .WriteTo.Console(LogEventLevel.Debug)
                 .WriteTo.NLog(LogEventLevel.Information);
         });
