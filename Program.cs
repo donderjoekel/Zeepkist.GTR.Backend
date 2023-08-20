@@ -2,11 +2,8 @@ using System.Text.Json;
 using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
-using Logtail.NLog;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
-using NLog;
-using NLog.Config;
 using Quartz;
 using Quartz.AspNetCore;
 using Serilog;
@@ -20,7 +17,6 @@ using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Backend.Redis;
 using TNRD.Zeepkist.GTR.Backend.Steam;
 using TNRD.Zeepkist.GTR.Database;
-using LogLevel = NLog.LogLevel;
 
 namespace TNRD.Zeepkist.GTR.Backend;
 
@@ -40,13 +36,12 @@ internal class Program
         {
             configuration
                 .MinimumLevel.Debug()
-                .WriteTo.Console(LogEventLevel.Debug)
-                .WriteTo.NLog(LogEventLevel.Information);
+                .WriteTo.Seq(context.Configuration["Seq:Url"], apiKey: context.Configuration["Seq:Key"])
+                .WriteTo.Console(LogEventLevel.Debug);
         });
 
         AddServices(builder);
         WebApplication app = builder.Build();
-        ConfigureLogging(app);
         ConfigureApp(app);
 
         await app.RunAsync();
@@ -76,7 +71,6 @@ internal class Program
         builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
         builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("Rabbit"));
         builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
-        builder.Services.Configure<LogtailOptions>(builder.Configuration.GetSection("Logtail"));
 
         builder.Services.AddNpgsql<GTRContext>(builder.Configuration["Database:ConnectionString"]);
 
@@ -99,22 +93,6 @@ internal class Program
 
         builder.Services.AddSingleton<IRabbitPublisher, RabbitPublisher>();
         builder.Services.AddHostedService<RabbitHostedService>();
-    }
-
-    private static void ConfigureLogging(IHost app)
-    {
-        LogtailOptions logtailOptions = app.Services.GetRequiredService<IOptions<LogtailOptions>>().Value;
-
-        LoggingConfiguration config = new();
-        LogtailTarget logtailTarget = new()
-        {
-            Name = "logtail",
-            Layout = logtailOptions.Format,
-            SourceToken = logtailOptions.SourceToken
-        };
-        config.AddRule(LogLevel.Trace, LogLevel.Fatal, logtailTarget, "*");
-
-        LogManager.Configuration = config;
     }
 
     private static void ConfigureApp(WebApplication app)
