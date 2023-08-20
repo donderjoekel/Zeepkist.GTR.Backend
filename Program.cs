@@ -35,6 +35,7 @@ internal class Program
         builder.Host.UseSerilog((context, configuration) =>
         {
             configuration
+                .Enrich.FromLogContext()
                 .MinimumLevel.Debug()
                 .WriteTo.Seq(context.Configuration["Seq:Url"], apiKey: context.Configuration["Seq:Key"])
                 .WriteTo.Console(LogEventLevel.Debug);
