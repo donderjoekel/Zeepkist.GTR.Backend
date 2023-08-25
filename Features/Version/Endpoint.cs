@@ -16,7 +16,7 @@ public class Endpoint : EndpointWithoutRequest<ResponseModel>
         return SendOkAsync(new ResponseModel()
             {
                 MinimumVersion = "0.20.5",
-                LatestVersion = "0.22.1"
+                LatestVersion = "0.22.2"
             },
             ct);
     }
