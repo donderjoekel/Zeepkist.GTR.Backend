@@ -95,6 +95,20 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
         query = ApplySpecialFilters(req, query);
         query = ApplySort(req, query);
 
+        DateTime? beforeDateTime = null;
+        if (!string.IsNullOrEmpty(req.Before) && long.TryParse(req.Before, out long before))
+        {
+            beforeDateTime = DateTimeOffset.FromUnixTimeSeconds(before).UtcDateTime;
+            query = query.Where(x => x.DateCreated < beforeDateTime);
+        }
+
+        DateTime? afterDateTime = null;
+        if (!string.IsNullOrEmpty(req.After) && long.TryParse(req.After, out long after))
+        {
+            afterDateTime = DateTimeOffset.FromUnixTimeSeconds(after).UtcDateTime;
+            query = query.Where(x => x.DateCreated > afterDateTime);
+        }
+
         int total = await query.CountAsync(ct);
 
         int limit = req.Limit ?? 100;
@@ -109,6 +123,8 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             {
                 TotalAmount = total,
                 Records = records.Select(x => x.ToResponseModel()).ToList(),
+                After = afterDateTime,
+                Before = beforeDateTime
             },
             ct);
     }
@@ -131,18 +147,6 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             query = query.Where(x => x.Time >= req.MinimumTime.Value);
         if (req.MaximumTime.HasValue)
             query = query.Where(x => x.Time <= req.MaximumTime.Value);
-
-        if (!string.IsNullOrEmpty(req.Before) && long.TryParse(req.Before, out long before))
-        {
-            DateTime beforeDateTime = DateTimeOffset.FromUnixTimeSeconds(before).DateTime;
-            query = query.Where(x => x.DateCreated < beforeDateTime);
-        }
-
-        if (!string.IsNullOrEmpty(req.After) && long.TryParse(req.After, out long after))
-        {
-            DateTime afterDateTime = DateTimeOffset.FromUnixTimeSeconds(after).DateTime;
-            query = query.Where(x => x.DateCreated > afterDateTime);
-        }
 
         return query;
     }
