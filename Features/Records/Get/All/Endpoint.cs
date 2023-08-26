@@ -1,4 +1,5 @@
-﻿using FastEndpoints;
+﻿using System.Globalization;
+using FastEndpoints;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
@@ -90,50 +91,9 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             .Include(x => x.LevelNavigation)
             .Include(x => x.UserNavigation);
 
-        if (req.LevelId.HasValue)
-            query = query.Where(x => x.Level == req.LevelId.Value);
-        if (!string.IsNullOrEmpty(req.LevelUid))
-            query = query.Where(x => x.LevelNavigation!.Uid == req.LevelUid);
-        if (!string.IsNullOrEmpty(req.LevelWorkshopId))
-            query = query.Where(x => x.LevelNavigation!.Wid == req.LevelWorkshopId);
-        if (!string.IsNullOrEmpty(req.UserSteamId))
-            query = query.Where(x => x.UserNavigation!.SteamId == req.UserSteamId);
-        if (req.UserId.HasValue)
-            query = query.Where(x => x.User == req.UserId);
-        if (!string.IsNullOrEmpty(req.GameVersion))
-            query = query.Where(x => x.GameVersion == req.GameVersion);
-        if (req.MinimumTime.HasValue)
-            query = query.Where(x => x.Time >= req.MinimumTime.Value);
-        if (req.MaximumTime.HasValue)
-            query = query.Where(x => x.Time <= req.MaximumTime.Value);
-
-        if (req.InvalidOnly == true)
-            query = query.Where(x => x.IsValid == false);
-        else
-        {
-            if (req.ValidOnly == true)
-                query = query.Where(x => x.IsValid == true);
-            if (req.BestOnly == true)
-                query = query.Where(x => x.IsBest == true);
-            if (req.WorldRecordOnly == true)
-                query = query.Where(x => x.IsWr == true);
-        }
-
-        if (!string.IsNullOrEmpty(req.Sort))
-        {
-            string[] splits = req.Sort.Split(',');
-            foreach (string split in splits)
-            {
-                foreach (SortingMethod sortingMethod in sortingMethods)
-                {
-                    query = sortingMethod.Process(split, query);
-                }
-            }
-        }
-        else
-        {
-            query = query.OrderBy(x => x.Level).ThenBy(x => x.Time);
-        }
+        query = ApplyRegularFilters(req, query);
+        query = ApplySpecialFilters(req, query);
+        query = ApplySort(req, query);
 
         int total = await query.CountAsync(ct);
 
@@ -151,5 +111,77 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
                 Records = records.Select(x => x.ToResponseModel()).ToList(),
             },
             ct);
+    }
+
+    private static IQueryable<Record> ApplyRegularFilters(RecordsGetRequestDTO req, IQueryable<Record> query)
+    {
+        if (req.LevelId.HasValue)
+            query = query.Where(x => x.Level == req.LevelId.Value);
+        if (!string.IsNullOrEmpty(req.LevelUid))
+            query = query.Where(x => x.LevelNavigation!.Uid == req.LevelUid);
+        if (!string.IsNullOrEmpty(req.LevelWorkshopId))
+            query = query.Where(x => x.LevelNavigation!.Wid == req.LevelWorkshopId);
+        if (!string.IsNullOrEmpty(req.UserSteamId))
+            query = query.Where(x => x.UserNavigation!.SteamId == req.UserSteamId);
+        if (req.UserId.HasValue)
+            query = query.Where(x => x.User == req.UserId);
+        if (!string.IsNullOrEmpty(req.GameVersion))
+            query = query.Where(x => x.GameVersion == req.GameVersion);
+        if (req.MinimumTime.HasValue)
+            query = query.Where(x => x.Time >= req.MinimumTime.Value);
+        if (req.MaximumTime.HasValue)
+            query = query.Where(x => x.Time <= req.MaximumTime.Value);
+
+        if (!string.IsNullOrEmpty(req.Before) && long.TryParse(req.Before, out long before))
+        {
+            DateTime beforeDateTime = DateTimeOffset.FromUnixTimeSeconds(before).DateTime;
+            query = query.Where(x => x.DateCreated < beforeDateTime);
+        }
+
+        if (!string.IsNullOrEmpty(req.After) && long.TryParse(req.After, out long after))
+        {
+            DateTime afterDateTime = DateTimeOffset.FromUnixTimeSeconds(after).DateTime;
+            query = query.Where(x => x.DateCreated > afterDateTime);
+        }
+
+        return query;
+    }
+
+    private static IQueryable<Record> ApplySpecialFilters(RecordsGetRequestDTO req, IQueryable<Record> query)
+    {
+        if (req.InvalidOnly == true)
+            query = query.Where(x => x.IsValid == false);
+        else
+        {
+            if (req.ValidOnly == true)
+                query = query.Where(x => x.IsValid == true);
+            if (req.BestOnly == true)
+                query = query.Where(x => x.IsBest == true);
+            if (req.WorldRecordOnly == true)
+                query = query.Where(x => x.IsWr == true);
+        }
+
+        return query;
+    }
+
+    private static IQueryable<Record> ApplySort(RecordsGetRequestDTO req, IQueryable<Record> query)
+    {
+        if (!string.IsNullOrEmpty(req.Sort))
+        {
+            string[] splits = req.Sort.Split(',');
+            foreach (string split in splits)
+            {
+                foreach (SortingMethod sortingMethod in sortingMethods)
+                {
+                    query = sortingMethod.Process(split, query);
+                }
+            }
+        }
+        else
+        {
+            query = query.OrderBy(x => x.Level).ThenBy(x => x.Time);
+        }
+
+        return query;
     }
 }
