@@ -1,9 +1,17 @@
 ﻿using FastEndpoints;
+using TNRD.Zeepkist.GTR.Database;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Version;
 
 public class Endpoint : EndpointWithoutRequest<ResponseModel>
 {
+    private readonly GTRContext context;
+
+    public Endpoint(GTRContext context)
+    {
+        this.context = context;
+    }
+
     public override void Configure()
     {
         AllowAnonymous();
@@ -11,12 +19,14 @@ public class Endpoint : EndpointWithoutRequest<ResponseModel>
         Get("version");
     }
 
-    public override Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
-        return SendOkAsync(new ResponseModel()
+        Database.Models.Version version = await context.Versions.AsNoTracking().FirstAsync(ct);
+
+        await SendOkAsync(new ResponseModel()
             {
-                MinimumVersion = "0.20.5",
-                LatestVersion = "0.22.2"
+                MinimumVersion = version.Minimum!,
+                LatestVersion = version.Latest!
             },
             ct);
     }

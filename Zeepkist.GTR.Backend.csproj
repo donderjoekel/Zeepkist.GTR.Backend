@@ -16,7 +16,7 @@
         <PackageReference Include="FastEndpoints.Security" Version="5.15.0" />
         <PackageReference Include="FastEndpoints.Swagger" Version="5.15.0" />
         <PackageReference Include="FluentResults" Version="3.15.2" />
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.61.0.3120" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.61.0.3155" />
         <PackageReference Include="Google.Cloud.Storage.V1" Version="4.6.0" />
         <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.10" />
@@ -29,7 +29,7 @@
         <PackageReference Include="Serilog.AspNetCore" Version="7.0.0" />
         <PackageReference Include="Serilog.Sinks.Seq" Version="5.2.2" />
         <PackageReference Include="SteamWebAPI2" Version="4.4.1" />
-        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="1.5.0" />
+        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="1.8.0" />
         <PackageReference Include="TNRD.Zeepkist.GTR.DTOs" Version="4.8.1" />
     </ItemGroup>
 
