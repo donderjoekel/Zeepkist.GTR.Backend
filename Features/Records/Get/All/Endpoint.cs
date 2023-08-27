@@ -10,9 +10,9 @@ namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Get.All;
 
 internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
 {
-    private record SortingMethod(string Key, Func<IQueryable<Record>, IQueryable<Record>> Method)
+    private record SortingMethod(string Key, Func<IOrderedQueryable<Record>, IOrderedQueryable<Record>> Method)
     {
-        public IQueryable<Record> Process(string input, IQueryable<Record> query)
+        public IOrderedQueryable<Record> Process(string input, IOrderedQueryable<Record> query)
         {
             return Key.Equals(input, StringComparison.InvariantCultureIgnoreCase) ? Method(query) : query;
         }
@@ -21,28 +21,28 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
     private static readonly HashSet<SortingMethod> sortingMethods =
         new()
         {
-            new SortingMethod("id", query => query.OrderBy(x => x.Id)),
-            new SortingMethod("-id", query => query.OrderByDescending(x => x.Id)),
-            new SortingMethod("levelId", query => query.OrderBy(x => x.Level)),
-            new SortingMethod("-levelId", query => query.OrderByDescending(x => x.Level)),
-            new SortingMethod("levelUid", query => query.OrderBy(x => x.LevelNavigation!.Uid)),
-            new SortingMethod("-levelUid", query => query.OrderByDescending(x => x.LevelNavigation!.Uid)),
-            new SortingMethod("levelWorkshopId", query => query.OrderBy(x => x.LevelNavigation!.Wid)),
-            new SortingMethod("-levelWorkshopId", query => query.OrderByDescending(x => x.LevelNavigation!.Wid)),
-            new SortingMethod("userId", query => query.OrderBy(x => x.User)),
-            new SortingMethod("-userId", query => query.OrderByDescending(x => x.User)),
-            new SortingMethod("userSteamId", query => query.OrderBy(x => x.UserNavigation!.SteamId)),
-            new SortingMethod("-userSteamId", query => query.OrderByDescending(x => x.UserNavigation!.SteamId)),
-            new SortingMethod("time", query => query.OrderBy(x => x.Time)),
-            new SortingMethod("-time", query => query.OrderByDescending(x => x.Time)),
-            new SortingMethod("timeAuthor", query => query.OrderBy(x => x.LevelNavigation!.TimeAuthor)),
-            new SortingMethod("-timeAuthor", query => query.OrderByDescending(x => x.LevelNavigation!.TimeAuthor)),
-            new SortingMethod("timeGold", query => query.OrderBy(x => x.LevelNavigation!.TimeGold)),
-            new SortingMethod("-timeGold", query => query.OrderByDescending(x => x.LevelNavigation!.TimeGold)),
-            new SortingMethod("timeSilver", query => query.OrderBy(x => x.LevelNavigation!.TimeSilver)),
-            new SortingMethod("-timeSilver", query => query.OrderByDescending(x => x.LevelNavigation!.TimeSilver)),
-            new SortingMethod("timeBronze", query => query.OrderBy(x => x.LevelNavigation!.TimeBronze)),
-            new SortingMethod("-timeBronze", query => query.OrderByDescending(x => x.LevelNavigation!.TimeBronze)),
+            new SortingMethod("id", query => query.ThenBy(x => x.Id)),
+            new SortingMethod("-id", query => query.ThenByDescending(x => x.Id)),
+            new SortingMethod("levelId", query => query.ThenBy(x => x.Level)),
+            new SortingMethod("-levelId", query => query.ThenByDescending(x => x.Level)),
+            new SortingMethod("levelUid", query => query.ThenBy(x => x.LevelNavigation!.Uid)),
+            new SortingMethod("-levelUid", query => query.ThenByDescending(x => x.LevelNavigation!.Uid)),
+            new SortingMethod("levelWorkshopId", query => query.ThenBy(x => x.LevelNavigation!.Wid)),
+            new SortingMethod("-levelWorkshopId", query => query.ThenByDescending(x => x.LevelNavigation!.Wid)),
+            new SortingMethod("userId", query => query.ThenBy(x => x.User)),
+            new SortingMethod("-userId", query => query.ThenByDescending(x => x.User)),
+            new SortingMethod("userSteamId", query => query.ThenBy(x => x.UserNavigation!.SteamId)),
+            new SortingMethod("-userSteamId", query => query.ThenByDescending(x => x.UserNavigation!.SteamId)),
+            new SortingMethod("time", query => query.ThenBy(x => x.Time)),
+            new SortingMethod("-time", query => query.ThenByDescending(x => x.Time)),
+            new SortingMethod("timeAuthor", query => query.ThenBy(x => x.LevelNavigation!.TimeAuthor)),
+            new SortingMethod("-timeAuthor", query => query.ThenByDescending(x => x.LevelNavigation!.TimeAuthor)),
+            new SortingMethod("timeGold", query => query.ThenBy(x => x.LevelNavigation!.TimeGold)),
+            new SortingMethod("-timeGold", query => query.ThenByDescending(x => x.LevelNavigation!.TimeGold)),
+            new SortingMethod("timeSilver", query => query.ThenBy(x => x.LevelNavigation!.TimeSilver)),
+            new SortingMethod("-timeSilver", query => query.ThenByDescending(x => x.LevelNavigation!.TimeSilver)),
+            new SortingMethod("timeBronze", query => query.ThenBy(x => x.LevelNavigation!.TimeBronze)),
+            new SortingMethod("-timeBronze", query => query.ThenByDescending(x => x.LevelNavigation!.TimeBronze)),
         };
 
     private readonly GTRContext context;
@@ -172,14 +172,18 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
     {
         if (!string.IsNullOrEmpty(req.Sort))
         {
+            IOrderedQueryable<Record> orderedQuery = query.OrderBy(x => 0);
+
             string[] splits = req.Sort.Split(',');
             foreach (string split in splits)
             {
                 foreach (SortingMethod sortingMethod in sortingMethods)
                 {
-                    query = sortingMethod.Process(split, query);
+                    orderedQuery = sortingMethod.Process(split, orderedQuery);
                 }
             }
+
+            query = orderedQuery;
         }
         else
         {
