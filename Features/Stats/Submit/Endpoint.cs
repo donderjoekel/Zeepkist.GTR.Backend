@@ -1,4 +1,5 @@
 ﻿using FastEndpoints;
+using Newtonsoft.Json;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
@@ -35,6 +36,10 @@ public class Endpoint : Endpoint<UsersUpdateStatsRequestDTO>
             return;
         }
 
+        Logger.LogInformation("Updating stats for user {UserId}; Existing stats: {SubmittedStats}",
+            userId,
+            JsonConvert.SerializeObject(req, Formatting.Indented));
+
         Stat? existingStat = await context.Stats.FirstOrDefaultAsync(x =>
                 x.User == userId && x.Month == DateTime.UtcNow.Month && x.Year == DateTime.UtcNow.Year,
             ct);
@@ -42,12 +47,25 @@ public class Endpoint : Endpoint<UsersUpdateStatsRequestDTO>
         if (existingStat == null)
         {
             Stat stat = CreateNewStat(req, userId);
+            Logger.LogInformation("Newly created stats for user {UserId}: {NewStats}",
+                userId,
+                JsonConvert.SerializeObject(stat, Formatting.Indented));
+
             await context.Stats.AddAsync(stat, ct);
             await context.SaveChangesAsync(ct);
         }
         else
         {
+            Logger.LogInformation("Existing stats for user {UserId} before: {ExistingStats}",
+                userId,
+                JsonConvert.SerializeObject(existingStat, Formatting.Indented));
+
             UpdateStats(existingStat, req);
+
+            Logger.LogInformation("Existing stats for user {UserId} after: {ExistingStats}",
+                userId,
+                JsonConvert.SerializeObject(existingStat, Formatting.Indented));
+
             await context.SaveChangesAsync(ct);
         }
 
