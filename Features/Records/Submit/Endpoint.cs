@@ -69,6 +69,7 @@ internal class Endpoint : Endpoint<RequestModel>
         EntityEntry<Record> entry = context.Records.Add(new Record()
         {
             Level = req.Level,
+            LevelHash = req.LevelHash,
             User = req.User,
             Time = req.Time,
             Splits = string.Join('|', req.Splits),
