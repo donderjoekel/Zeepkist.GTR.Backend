@@ -5,7 +5,7 @@ using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
-namespace TNRD.Zeepkist.GTR.Backend.Features.Records.GetRecent;
+namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Get.Recent;
 
 internal class Endpoint : Endpoint<GenericGetRequestDTO, RecordsGetRecentResponseDTO>
 {
