@@ -19,7 +19,7 @@ public class Endpoint : Endpoint<WorldRecordGetByLevelAndUserRequestDTO, WorldRe
     public override void Configure()
     {
         AllowAnonymous();
-        Get("/pbs/level/{Level}/user/{User}");
+        Get("/wrs/level/{Level}/user/{User}");
     }
 
     public override async Task HandleAsync(WorldRecordGetByLevelAndUserRequestDTO req, CancellationToken ct)

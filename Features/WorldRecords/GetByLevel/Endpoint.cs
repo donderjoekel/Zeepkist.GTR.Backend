@@ -19,7 +19,7 @@ public class Endpoint : Endpoint<GenericIdWithLimitOffsetRequestDTO, WorldRecord
     public override void Configure()
     {
         AllowAnonymous();
-        Get("/pbs/level/{Id}");
+        Get("/wrs/level/{Id}");
     }
 
     public override async Task HandleAsync(GenericIdWithLimitOffsetRequestDTO req, CancellationToken ct)

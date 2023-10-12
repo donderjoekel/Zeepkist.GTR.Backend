@@ -19,7 +19,7 @@ public class Endpoint : Endpoint<GenericIdRequestDTO, WorldRecordGetByIdResponse
     public override void Configure()
     {
         AllowAnonymous();
-        Get("/pbs/{Id}");
+        Get("/wrs/{Id}");
     }
 
     public override async Task HandleAsync(GenericIdRequestDTO req, CancellationToken ct)
