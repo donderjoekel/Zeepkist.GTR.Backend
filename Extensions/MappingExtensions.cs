@@ -192,4 +192,25 @@ internal static class MappingExtensions
             ScreenshotUrl = media.ScreenshotUrl
         };
     }
+
+    public static PersonalBestResponseModel ToResponseModel(
+        this PersonalBest personalBest,
+        RecordResponseModel? record = null,
+        UserResponseModel? user = null,
+        LevelResponseModel? level = null
+    )
+    {
+        return new PersonalBestResponseModel()
+        {
+            Id = personalBest.Id,
+            PeriodEnd = personalBest.PeriodEnd,
+            PeriodStart = personalBest.PeriodStart,
+            Record = record ?? personalBest.RecordNavigation?.ToResponseModel() ??
+                new RecordResponseModel { Id = personalBest.Record },
+            User = user ?? personalBest.UserNavigation?.ToResponseModel() ??
+                new UserResponseModel() { Id = personalBest.User },
+            Level = level ?? personalBest.LevelNavigation?.ToResponseModel() ??
+                new LevelResponseModel { Id = personalBest.Level }
+        };
+    }
 }

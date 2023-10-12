@@ -1,12 +1,13 @@
 ﻿using FastEndpoints;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Database;
+using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
-namespace TNRD.Zeepkist.GTR.Backend.Features.Media.GetAll;
+namespace TNRD.Zeepkist.GTR.Backend.Features.PersonalBests.GetAll;
 
-public class Endpoint : Endpoint<GenericGetRequestDTO, MediaGetAllResponseDTO>
+public class Endpoint : Endpoint<GenericGetRequestDTO, PersonalBestGetAllResponseDTO>
 {
     private readonly GTRContext context;
 
@@ -18,26 +19,25 @@ public class Endpoint : Endpoint<GenericGetRequestDTO, MediaGetAllResponseDTO>
     public override void Configure()
     {
         AllowAnonymous();
-        Get("media");
+        Get("/pbs");
     }
 
     public override async Task HandleAsync(GenericGetRequestDTO req, CancellationToken ct)
     {
-        int count = await context.Media.AsNoTracking().CountAsync(ct);
-        List<Database.Models.Media> items = await context.Media.AsNoTracking()
+        int count = await context.PersonalBests.AsNoTracking().CountAsync(ct);
+
+        List<PersonalBest> items = await context.PersonalBests.AsNoTracking()
             .OrderBy(x => x.Id)
             .Skip(req.Offset!.Value)
             .Take(req.Limit!.Value)
             .ToListAsync(ct);
 
-        MediaGetAllResponseDTO responseDTO = new()
+        PersonalBestGetAllResponseDTO dto = new()
         {
             TotalAmount = count,
-            Limit = req.Limit.Value,
-            Offset = req.Offset.Value,
             Items = items.Select(x => x.ToResponseModel()).ToList()
         };
 
-        await SendAsync(responseDTO, cancellation: ct);
+        await SendOkAsync(dto, ct);
     }
 }
