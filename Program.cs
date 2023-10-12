@@ -13,6 +13,7 @@ using TNRD.Zeepkist.GTR.Backend.Authentication;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
 using TNRD.Zeepkist.GTR.Backend.Jobs;
+using TNRD.Zeepkist.GTR.Backend.PreProcessors;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Backend.Redis;
 using TNRD.Zeepkist.GTR.Backend.Steam;
@@ -116,6 +117,11 @@ internal class Program
 
         app.UseFastEndpoints(options =>
         {
+            options.Endpoints.Configurator = ep =>
+            {
+                ep.PreProcessors(Order.Before, new GenericGetRequestPreProcessor());
+            };
+
             options.Errors.ResponseBuilder = (errors, _, _) => errors.ToResponse();
             options.Errors.StatusCode = StatusCodes.Status422UnprocessableEntity;
             options.Serializer.Options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -138,7 +144,7 @@ internal class Program
     )
         where TJob : IJob
     {
-        JobKey key = new JobKey($"{name}Job");
+        JobKey key = new($"{name}Job");
         q.AddJob<TJob>(opts => opts.WithIdentity(key));
 
         q.AddTrigger(opts =>

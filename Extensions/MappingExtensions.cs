@@ -62,7 +62,7 @@ internal static class MappingExtensions
             Level = level ?? favorite.LevelNavigation?.ToResponseModel() ??
                 new LevelResponseModel { Id = favorite.Level!.Value },
             User = user ?? favorite.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = favorite.User!.Value },
+                new UserResponseModel { Id = favorite.User!.Value }
         };
     }
 
@@ -78,7 +78,7 @@ internal static class MappingExtensions
             Level = level ?? upvote.LevelNavigation?.ToResponseModel() ??
                 new LevelResponseModel { Id = upvote.Level!.Value },
             User = user ?? upvote.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = upvote.User!.Value },
+                new UserResponseModel { Id = upvote.User!.Value }
         };
     }
 
@@ -96,7 +96,7 @@ internal static class MappingExtensions
             Level = level ?? vote.LevelNavigation?.ToResponseModel() ??
                 new LevelResponseModel { Id = vote.Level!.Value },
             User = user ?? vote.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = vote.User!.Value },
+                new UserResponseModel { Id = vote.User!.Value }
         };
     }
 
@@ -177,7 +177,19 @@ internal static class MappingExtensions
             WheelsBroken = stat.WheelsBroken,
             CheckpointsCrossed = stat.CheckpointsCrossed,
             Month = stat.Month,
-            Year = stat.Year,
+            Year = stat.Year
+        };
+    }
+
+    public static MediaResponseModel ToResponseModel(this Media media, RecordResponseModel? record = null)
+    {
+        return new MediaResponseModel
+        {
+            Id = media.Id,
+            Record = record ?? media.RecordNavigation?.ToResponseModel() ??
+                new RecordResponseModel { Id = media.Record },
+            GhostUrl = media.GhostUrl,
+            ScreenshotUrl = media.ScreenshotUrl
         };
     }
 }
