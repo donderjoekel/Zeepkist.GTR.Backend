@@ -213,4 +213,25 @@ internal static class MappingExtensions
                 new LevelResponseModel { Id = personalBest.Level }
         };
     }
+
+    public static WorldRecordResponseModel ToResponseModel(
+        this WorldRecord personalBest,
+        RecordResponseModel? record = null,
+        UserResponseModel? user = null,
+        LevelResponseModel? level = null
+    )
+    {
+        return new WorldRecordResponseModel()
+        {
+            Id = personalBest.Id,
+            PeriodEnd = personalBest.PeriodEnd,
+            PeriodStart = personalBest.PeriodStart,
+            Record = record ?? personalBest.RecordNavigation?.ToResponseModel() ??
+                new RecordResponseModel { Id = personalBest.Record },
+            User = user ?? personalBest.UserNavigation?.ToResponseModel() ??
+                new UserResponseModel() { Id = personalBest.User },
+            Level = level ?? personalBest.LevelNavigation?.ToResponseModel() ??
+                new LevelResponseModel { Id = personalBest.Level }
+        };
+    }
 }
