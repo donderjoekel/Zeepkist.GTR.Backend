@@ -17,8 +17,8 @@
     </ItemGroup>
 
     <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
-        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="2.*.*"/>
-        <PackageReference Include="TNRD.Zeepkist.GTR.DTOs" Version="5.*.*"/>
+        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="2.*"/>
+        <PackageReference Include="TNRD.Zeepkist.GTR.DTOs" Version="5.*"/>
     </ItemGroup>
 
     <ItemGroup>
