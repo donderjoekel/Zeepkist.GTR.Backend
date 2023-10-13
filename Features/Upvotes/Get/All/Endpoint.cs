@@ -29,22 +29,11 @@ internal class Endpoint : Endpoint<UpvotesGetRequestDTO, UpvotesGetResponseDTO>
     public override async Task HandleAsync(UpvotesGetRequestDTO req, CancellationToken ct)
     {
         IQueryable<Upvote> query = context.Upvotes.AsNoTracking()
-            .Include(f => f.LevelNavigation)
             .Include(f => f.UserNavigation);
 
-        if (req.LevelId.HasValue)
+        if (req.Level.HasValue())
         {
-            query = query.Where(f => f.Level == req.LevelId.Value);
-        }
-
-        if (!string.IsNullOrEmpty(req.LevelUid))
-        {
-            query = query.Where(f => f.LevelNavigation.Uid == req.LevelUid);
-        }
-
-        if (!string.IsNullOrEmpty(req.LevelWorkshopId))
-        {
-            query = query.Where(f => f.LevelNavigation.Wid == req.LevelWorkshopId);
+            query = query.Where(f => f.Level == req.Level);
         }
 
         if (req.UserId.HasValue)

@@ -23,26 +23,14 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
         {
             new SortingMethod("id", query => query.ThenBy(x => x.Id)),
             new SortingMethod("-id", query => query.ThenByDescending(x => x.Id)),
-            new SortingMethod("levelId", query => query.ThenBy(x => x.Level)),
-            new SortingMethod("-levelId", query => query.ThenByDescending(x => x.Level)),
-            new SortingMethod("levelUid", query => query.ThenBy(x => x.LevelNavigation!.Uid)),
-            new SortingMethod("-levelUid", query => query.ThenByDescending(x => x.LevelNavigation!.Uid)),
-            new SortingMethod("levelWorkshopId", query => query.ThenBy(x => x.LevelNavigation!.Wid)),
-            new SortingMethod("-levelWorkshopId", query => query.ThenByDescending(x => x.LevelNavigation!.Wid)),
+            new SortingMethod("level", query => query.ThenBy(x => x.Level)),
+            new SortingMethod("-level", query => query.ThenByDescending(x => x.Level)),
             new SortingMethod("userId", query => query.ThenBy(x => x.User)),
             new SortingMethod("-userId", query => query.ThenByDescending(x => x.User)),
             new SortingMethod("userSteamId", query => query.ThenBy(x => x.UserNavigation!.SteamId)),
             new SortingMethod("-userSteamId", query => query.ThenByDescending(x => x.UserNavigation!.SteamId)),
             new SortingMethod("time", query => query.ThenBy(x => x.Time)),
-            new SortingMethod("-time", query => query.ThenByDescending(x => x.Time)),
-            new SortingMethod("timeAuthor", query => query.ThenBy(x => x.LevelNavigation!.TimeAuthor)),
-            new SortingMethod("-timeAuthor", query => query.ThenByDescending(x => x.LevelNavigation!.TimeAuthor)),
-            new SortingMethod("timeGold", query => query.ThenBy(x => x.LevelNavigation!.TimeGold)),
-            new SortingMethod("-timeGold", query => query.ThenByDescending(x => x.LevelNavigation!.TimeGold)),
-            new SortingMethod("timeSilver", query => query.ThenBy(x => x.LevelNavigation!.TimeSilver)),
-            new SortingMethod("-timeSilver", query => query.ThenByDescending(x => x.LevelNavigation!.TimeSilver)),
-            new SortingMethod("timeBronze", query => query.ThenBy(x => x.LevelNavigation!.TimeBronze)),
-            new SortingMethod("-timeBronze", query => query.ThenByDescending(x => x.LevelNavigation!.TimeBronze)),
+            new SortingMethod("-time", query => query.ThenByDescending(x => x.Time))
         };
 
     private readonly GTRContext context;
@@ -60,10 +48,6 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
         Get("records");
         Summary(s =>
         {
-            s.RequestParam(p => p.BestOnly!,
-                "If true this will only return records that are the best records per player per map <br />" +
-                "If false this will also include non-best records");
-
             s.RequestParam(p => p.ValidOnly!,
                 "If true this will only return records that are considered valid <br />" +
                 "If false this will also include invalid records");
@@ -71,10 +55,6 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             s.RequestParam(p => p.InvalidOnly!,
                 "If true this will only return records that are considered invalid <br />" +
                 "Does not work in combination with BestOnly, ValidOnly, or WorldRecordOnly");
-
-            s.RequestParam(p => p.WorldRecordOnly!,
-                "If true this will only return world records per map <br />" +
-                "If false this will also include non-world record records");
 
             s.RequestParam(p => p.Sort!,
                 "Comma separated value. <br /> Can be negated by adding a '-' in front of the option. <br /> Valid options are: " +
@@ -88,7 +68,6 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
     public override async Task HandleAsync(RecordsGetRequestDTO req, CancellationToken ct)
     {
         IQueryable<Record> query = context.Records.AsNoTracking()
-            .Include(x => x.LevelNavigation)
             .Include(x => x.UserNavigation);
 
         query = ApplyRegularFilters(req, query);
@@ -131,12 +110,8 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
 
     private static IQueryable<Record> ApplyRegularFilters(RecordsGetRequestDTO req, IQueryable<Record> query)
     {
-        if (req.LevelId.HasValue)
-            query = query.Where(x => x.Level == req.LevelId.Value);
-        if (!string.IsNullOrEmpty(req.LevelUid))
-            query = query.Where(x => x.LevelNavigation!.Uid == req.LevelUid);
-        if (!string.IsNullOrEmpty(req.LevelWorkshopId))
-            query = query.Where(x => x.LevelNavigation!.Wid == req.LevelWorkshopId);
+        if (req.Level.HasValue())
+            query = query.Where(x => x.Level == req.Level);
         if (!string.IsNullOrEmpty(req.UserSteamId))
             query = query.Where(x => x.UserNavigation!.SteamId == req.UserSteamId);
         if (req.UserId.HasValue)
@@ -147,6 +122,8 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
             query = query.Where(x => x.Time >= req.MinimumTime.Value);
         if (req.MaximumTime.HasValue)
             query = query.Where(x => x.Time <= req.MaximumTime.Value);
+        if (req.GameVersion.HasValue())
+            query = query.Where(x => x.GameVersion == req.GameVersion);
 
         return query;
     }
@@ -155,15 +132,8 @@ internal class Endpoint : Endpoint<RecordsGetRequestDTO, RecordsGetResponseDTO>
     {
         if (req.InvalidOnly == true)
             query = query.Where(x => x.IsValid == false);
-        else
-        {
-            if (req.ValidOnly == true)
-                query = query.Where(x => x.IsValid == true);
-            if (req.BestOnly == true)
-                query = query.Where(x => x.IsBest == true);
-            if (req.WorldRecordOnly == true)
-                query = query.Where(x => x.IsWr == true);
-        }
+        else if (req.ValidOnly == true)
+            query = query.Where(x => x.IsValid == true);
 
         return query;
     }

@@ -40,9 +40,9 @@ internal class Endpoint : Endpoint<FavoritesAddRequestDTO, GenericIdResponseDTO>
             return;
         }
 
-        Favorite? favorite = await (from f in context.Favorites.AsNoTracking()
-            where f.User == userId && f.Level == req.LevelId
-            select f).FirstOrDefaultAsync(ct);
+        Favorite? favorite = await context.Favorites.AsNoTracking()
+            .Where(f => f.User == userId && f.Level == req.Level)
+            .FirstOrDefaultAsync(ct);
 
         if (favorite != null)
         {
@@ -53,7 +53,7 @@ internal class Endpoint : Endpoint<FavoritesAddRequestDTO, GenericIdResponseDTO>
         EntityEntry<Favorite> entity = await context.Favorites.AddAsync(new Favorite()
             {
                 User = userId,
-                Level = req.LevelId,
+                Level = req.Level,
                 DateCreated = DateTime.UtcNow
             },
             ct);

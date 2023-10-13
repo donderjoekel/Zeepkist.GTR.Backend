@@ -28,8 +28,7 @@ internal class Endpoint : Endpoint<VotesGetRequestDTO, VotesGetResponseDTO>
     public override async Task HandleAsync(VotesGetRequestDTO req, CancellationToken ct)
     {
         IQueryable<Vote> query = context.Votes.AsNoTracking()
-            .Include(v => v.UserNavigation)
-            .Include(v => v.LevelNavigation);
+            .Include(v => v.UserNavigation);
 
         if (req.UserId.HasValue)
             query = query.Where(x => x.User == req.UserId.Value);
@@ -37,14 +36,8 @@ internal class Endpoint : Endpoint<VotesGetRequestDTO, VotesGetResponseDTO>
         if (req.UserSteamId.HasValue())
             query = query.Where(x => x.UserNavigation.SteamId == req.UserSteamId);
 
-        if (req.LevelId.HasValue)
-            query = query.Where(x => x.Level == req.LevelId.Value);
-
-        if (req.LevelUid.HasValue())
-            query = query.Where(x => x.LevelNavigation.Uid == req.LevelUid);
-
-        if (req.LevelWorkshopId.HasValue())
-            query = query.Where(x => x.LevelNavigation.Wid == req.LevelWorkshopId);
+        if (req.Level.HasValue())
+            query = query.Where(x => x.Level == req.Level);
 
         IOrderedQueryable<Vote> orderedQuery = query.OrderBy(x => x.Id);
 
@@ -55,7 +48,7 @@ internal class Endpoint : Endpoint<VotesGetRequestDTO, VotesGetResponseDTO>
             .Take(req.Limit ?? 100)
             .ToListAsync(ct);
 
-        VotesGetResponseDTO responseModel = new VotesGetResponseDTO()
+        VotesGetResponseDTO responseModel = new()
         {
             Votes = votes.Select(x => x.ToResponseModel()).ToList(),
             TotalAmount = totalAmount

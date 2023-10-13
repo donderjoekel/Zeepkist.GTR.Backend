@@ -5,33 +5,12 @@ namespace TNRD.Zeepkist.GTR.Backend.Extensions;
 
 internal static class MappingExtensions
 {
-    public static LevelResponseModel ToResponseModel(this Level level, Record? worldRecord = null)
-    {
-        return new LevelResponseModel
-        {
-            Id = level.Id,
-            Author = level.Author,
-            Name = level.Name,
-            IsValid = level.IsValid,
-            ThumbnailUrl = level.ThumbnailUrl,
-            TimeAuthor = level.TimeAuthor,
-            TimeBronze = level.TimeBronze,
-            TimeGold = level.TimeGold,
-            TimeSilver = level.TimeSilver,
-            UniqueId = level.Uid,
-            WorkshopId = level.Wid,
-            Points = level.Points,
-            Rank = level.Rank,
-            WorldRecord = worldRecord?.ToWorldRecordResponseModel() ?? null
-        };
-    }
-
     private static RecordResponseModel ToWorldRecordResponseModel(
         this Record record,
         UserResponseModel? user = null
     )
     {
-        RecordResponseModel responseModel = record.ToResponseModel(null, user);
+        RecordResponseModel responseModel = record.ToResponseModel(user);
         responseModel.Level = null;
         return responseModel;
     }
@@ -52,39 +31,34 @@ internal static class MappingExtensions
 
     public static FavoriteResponseModel ToResponseModel(
         this Favorite favorite,
-        LevelResponseModel? level = null,
         UserResponseModel? user = null
     )
     {
         return new FavoriteResponseModel()
         {
             Id = favorite.Id,
-            Level = level ?? favorite.LevelNavigation?.ToResponseModel() ??
-                new LevelResponseModel { Id = favorite.Level!.Value },
+            Level = favorite.Level,
             User = user ?? favorite.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = favorite.User!.Value }
+                new UserResponseModel { Id = favorite.User }
         };
     }
 
     public static UpvoteResponseModel ToResponseModel(
         this Upvote upvote,
-        LevelResponseModel? level = null,
         UserResponseModel? user = null
     )
     {
         return new UpvoteResponseModel()
         {
             Id = upvote.Id,
-            Level = level ?? upvote.LevelNavigation?.ToResponseModel() ??
-                new LevelResponseModel { Id = upvote.Level!.Value },
+            Level = upvote.Level,
             User = user ?? upvote.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = upvote.User!.Value }
+                new UserResponseModel { Id = upvote.User }
         };
     }
 
     public static VoteResponseModel ToResponseModel(
         this Vote vote,
-        LevelResponseModel? level = null,
         UserResponseModel? user = null
     )
     {
@@ -93,23 +67,20 @@ internal static class MappingExtensions
             Id = vote.Id,
             Score = vote.Score,
             Category = vote.Category,
-            Level = level ?? vote.LevelNavigation?.ToResponseModel() ??
-                new LevelResponseModel { Id = vote.Level!.Value },
+            Level = vote.Level,
             User = user ?? vote.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = vote.User!.Value }
+                new UserResponseModel { Id = vote.User }
         };
     }
 
     public static RecordResponseModel ToResponseModel(
         this Record record,
-        LevelResponseModel? level = null,
         UserResponseModel? user = null
     )
     {
         return new RecordResponseModel()
         {
-            Level = level ?? record.LevelNavigation?.ToResponseModel() ??
-                new LevelResponseModel { Id = record.Level!.Value },
+            Level = record.Level,
             User = user ?? record.UserNavigation?.ToResponseModel() ??
                 new UserResponseModel { Id = record.User!.Value },
             Id = record.Id,
@@ -118,12 +89,8 @@ internal static class MappingExtensions
                 ? Array.Empty<float>()
                 : record.Splits.Split('|').Select(float.Parse).ToArray(),
             Time = record.Time,
-            DateCreated = record.DateCreated,
             GameVersion = record.GameVersion,
-            GhostUrl = record.GhostUrl,
-            IsBest = record.IsBest,
-            ScreenshotUrl = record.ScreenshotUrl,
-            IsWorldRecord = record.IsWr
+            ModVersion = record.ModVersion
         };
     }
 
@@ -196,8 +163,7 @@ internal static class MappingExtensions
     public static PersonalBestResponseModel ToResponseModel(
         this PersonalBest personalBest,
         RecordResponseModel? record = null,
-        UserResponseModel? user = null,
-        LevelResponseModel? level = null
+        UserResponseModel? user = null
     )
     {
         return new PersonalBestResponseModel()
@@ -209,16 +175,14 @@ internal static class MappingExtensions
                 new RecordResponseModel { Id = personalBest.Record },
             User = user ?? personalBest.UserNavigation?.ToResponseModel() ??
                 new UserResponseModel() { Id = personalBest.User },
-            Level = level ?? personalBest.LevelNavigation?.ToResponseModel() ??
-                new LevelResponseModel { Id = personalBest.Level }
+            Level = personalBest.Level
         };
     }
 
     public static WorldRecordResponseModel ToResponseModel(
         this WorldRecord personalBest,
         RecordResponseModel? record = null,
-        UserResponseModel? user = null,
-        LevelResponseModel? level = null
+        UserResponseModel? user = null
     )
     {
         return new WorldRecordResponseModel()
@@ -230,8 +194,7 @@ internal static class MappingExtensions
                 new RecordResponseModel { Id = personalBest.Record },
             User = user ?? personalBest.UserNavigation?.ToResponseModel() ??
                 new UserResponseModel() { Id = personalBest.User },
-            Level = level ?? personalBest.LevelNavigation?.ToResponseModel() ??
-                new LevelResponseModel { Id = personalBest.Level }
+            Level = personalBest.Level
         };
     }
 }

@@ -6,10 +6,11 @@ using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Database;
 using TNRD.Zeepkist.GTR.Database.Models;
 using TNRD.Zeepkist.GTR.DTOs.Rabbit;
+using TNRD.Zeepkist.GTR.DTOs.RequestDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Records.Submit;
 
-internal class Endpoint : Endpoint<RequestModel>
+internal class Endpoint : Endpoint<RecordsSubmitRequestDTO>
 {
     private readonly GTRContext context;
     private readonly IRabbitPublisher publisher;
@@ -29,7 +30,7 @@ internal class Endpoint : Endpoint<RequestModel>
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(RequestModel req, CancellationToken ct)
+    public override async Task HandleAsync(RecordsSubmitRequestDTO req, CancellationToken ct)
     {
         if (!this.TryGetUserId(out int userId))
         {
@@ -59,26 +60,15 @@ internal class Endpoint : Endpoint<RequestModel>
             return;
         }
 
-        if (await IsLevelBlocked(req, ct))
-        {
-            Logger.LogInformation("Level is blocked!");
-            await SendOkAsync(ct);
-            return;
-        }
-
         EntityEntry<Record> entry = context.Records.Add(new Record()
         {
             Level = req.Level,
-            LevelHash = req.LevelHash,
             User = req.User,
             Time = req.Time,
             Splits = string.Join('|', req.Splits),
-            GhostUrl = string.Empty,
-            ScreenshotUrl = string.Empty,
             IsValid = req.IsValid,
-            IsBest = false,
-            IsWr = false,
             GameVersion = req.GameVersion,
+            ModVersion = req.ModVersion,
             DateCreated = DateTime.UtcNow
         });
 
@@ -119,19 +109,7 @@ internal class Endpoint : Endpoint<RequestModel>
         await SendOkAsync(ct);
     }
 
-    private async Task<bool> IsLevelBlocked(RequestModel req, CancellationToken ct)
-    {
-        Level? level = await context.Levels.AsNoTracking()
-            .Where(x => x.Id == req.Level)
-            .FirstOrDefaultAsync(ct);
-
-        if (level == null)
-            return false;
-
-        return level.Blocked ?? false;
-    }
-
-    private async Task<bool> DoesRecordExist(RequestModel req, CancellationToken ct)
+    private async Task<bool> DoesRecordExist(RecordsSubmitRequestDTO req, CancellationToken ct)
     {
         string joinedSplits = string.Join('|', req.Splits);
 
@@ -143,8 +121,8 @@ internal class Endpoint : Endpoint<RequestModel>
         if (existingRecord == null)
             return false;
 
-        TimeSpan a = DateTime.Now - existingRecord.DateCreated!.Value;
-        TimeSpan b = DateTime.UtcNow - existingRecord.DateCreated!.Value;
+        TimeSpan a = DateTime.Now - existingRecord.DateCreated;
+        TimeSpan b = DateTime.UtcNow - existingRecord.DateCreated;
 
         return a < TimeSpan.FromMinutes(1) || b < TimeSpan.FromMinutes(1);
     }

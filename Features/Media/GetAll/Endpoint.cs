@@ -33,8 +33,6 @@ public class Endpoint : Endpoint<GenericGetRequestDTO, MediaGetAllResponseDTO>
         MediaGetAllResponseDTO responseDTO = new()
         {
             TotalAmount = count,
-            Limit = req.Limit.Value,
-            Offset = req.Offset.Value,
             Items = items.Select(x => x.ToResponseModel()).ToList()
         };
 

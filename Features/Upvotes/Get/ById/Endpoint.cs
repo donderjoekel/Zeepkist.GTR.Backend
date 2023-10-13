@@ -31,7 +31,6 @@ internal class Endpoint : Endpoint<GenericIdResponseDTO, UpvoteResponseModel>
         Upvote? upvote = await context.Upvotes
             .AsNoTracking()
             .Include(f => f.UserNavigation)
-            .Include(f => f.LevelNavigation)
             .Where(f => f.Id == req.Id)
             .FirstOrDefaultAsync(ct);
 

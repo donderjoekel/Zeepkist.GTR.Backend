@@ -51,7 +51,11 @@ internal class CloudStorageUploadService : IGoogleUploadService
     }
 
     /// <inheritdoc />
-    public async Task<Result<string>> UploadGhost(string identifier, string ghostData, CancellationToken ct = default)
+    public async Task<Result<string>> UploadGhost(
+        string identifier,
+        string ghostData,
+        CancellationToken ct = default
+    )
     {
         Result<Object> uploadResult =
             await Upload(ghostData, "ghosts", $"{identifier}.bin", "application/octet-stream", ct);
@@ -91,9 +95,9 @@ internal class CloudStorageUploadService : IGoogleUploadService
         Exception? exception = null;
         Object? uploadedObject;
 
-        using (MemoryStream stream = new MemoryStream(bytes))
+        using (MemoryStream stream = new(bytes))
         {
-            Progress<IUploadProgress> progress = new Progress<IUploadProgress>();
+            Progress<IUploadProgress> progress = new();
             progress.ProgressChanged += (sender, p) =>
             {
                 if (p.Status == UploadStatus.Completed)
@@ -142,9 +146,14 @@ internal class CloudStorageUploadService : IGoogleUploadService
     }
 
     /// <inheritdoc />
-    public async Task<Result<string>> UploadThumbnail(string uid, string thumbnailData, CancellationToken ct = default)
+    public async Task<Result<string>> UploadThumbnail(
+        string uid,
+        string thumbnailData,
+        CancellationToken ct = default
+    )
     {
-        Result<Object> uploadResult = await Upload(thumbnailData, "thumbnails", $"{uid}.jpeg", "image/jpeg", ct);
+        Result<Object> uploadResult =
+            await Upload(thumbnailData, "thumbnails", $"{uid}.jpeg", "image/jpeg", ct);
         if (uploadResult.IsFailed)
             return uploadResult.ToResult();
 

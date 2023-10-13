@@ -11,6 +11,16 @@
         <AssemblyName>TNRD.Zeepkist.GTR.Backend</AssemblyName>
     </PropertyGroup>
 
+    <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <ProjectReference Include="..\Zeepkist.GTR.Database\Zeepkist.GTR.Database.csproj"/>
+        <ProjectReference Include="..\Zeepkist.GTR.DTOs\Zeepkist.GTR.DTOs.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
+        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="2.*.*"/>
+        <PackageReference Include="TNRD.Zeepkist.GTR.DTOs" Version="5.*.*"/>
+    </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="FastEndpoints" Version="5.18.0"/>
         <PackageReference Include="FastEndpoints.Security" Version="5.18.0"/>
@@ -25,15 +35,10 @@
         <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.11"/>
         <PackageReference Include="Quartz.AspNetCore" Version="3.7.0"/>
-        <PackageReference Include="RabbitMQ.Client" Version="6.5.0"/>
+        <PackageReference Include="RabbitMQ.Client" Version="6.6.0"/>
         <PackageReference Include="Semver" Version="2.3.0"/>
         <PackageReference Include="Serilog.AspNetCore" Version="7.0.0"/>
         <PackageReference Include="Serilog.Sinks.Seq" Version="5.2.3"/>
         <PackageReference Include="SteamWebAPI2" Version="4.4.1"/>
-        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="1.12.0"/>
-        <PackageReference Include="TNRD.Zeepkist.GTR.DTOs" Version="4.12.0"/>
     </ItemGroup>
-
-
-
 </Project>

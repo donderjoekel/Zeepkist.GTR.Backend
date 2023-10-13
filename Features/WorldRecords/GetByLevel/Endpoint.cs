@@ -7,7 +7,7 @@ using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.WorldRecords.GetByLevel;
 
-public class Endpoint : Endpoint<GenericIdWithLimitOffsetRequestDTO, WorldRecordGetByLevelResponseDTO>
+public class Endpoint : Endpoint<WorldRecordGetByLevelRequestDTO, WorldRecordGetByLevelResponseDTO>
 {
     private readonly GTRContext context;
 
@@ -22,10 +22,10 @@ public class Endpoint : Endpoint<GenericIdWithLimitOffsetRequestDTO, WorldRecord
         Get("/wrs/level/{Id}");
     }
 
-    public override async Task HandleAsync(GenericIdWithLimitOffsetRequestDTO req, CancellationToken ct)
+    public override async Task HandleAsync(WorldRecordGetByLevelRequestDTO req, CancellationToken ct)
     {
         WorldRecord? worldRecord = await context.WorldRecords.AsNoTracking()
-            .Where(x => x.Level == req.Id)
+            .Where(x => x.Level == req.Level)
             .FirstOrDefaultAsync(ct);
 
         if (worldRecord != null)

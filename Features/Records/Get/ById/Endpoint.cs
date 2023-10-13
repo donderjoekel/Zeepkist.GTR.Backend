@@ -29,7 +29,6 @@ internal class Endpoint : Endpoint<GenericIdResponseDTO, RecordResponseModel>
     {
         Record? record = await context.Records
             .AsNoTracking()
-            .Include(x => x.LevelNavigation)
             .Include(x => x.UserNavigation)
             .Where(r => r.Id == req.Id)
             .FirstOrDefaultAsync(ct);

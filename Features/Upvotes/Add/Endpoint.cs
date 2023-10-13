@@ -40,9 +40,10 @@ internal class Endpoint : Endpoint<UpvotesAddRequestDTO, GenericIdResponseDTO>
             return;
         }
 
-        Upvote? upvote = await (from f in context.Upvotes.AsNoTracking()
-            where f.User == userId && f.Level == req.LevelId
-            select f).FirstOrDefaultAsync(ct);
+        Upvote? upvote = await context.Upvotes
+            .AsNoTracking()
+            .Where(f => f.User == userId && f.Level == req.Level)
+            .FirstOrDefaultAsync(ct);
 
         if (upvote != null)
         {
@@ -53,7 +54,7 @@ internal class Endpoint : Endpoint<UpvotesAddRequestDTO, GenericIdResponseDTO>
         EntityEntry<Upvote> entity = await context.Upvotes.AddAsync(new Upvote()
             {
                 User = userId,
-                Level = req.LevelId,
+                Level = req.Level,
                 DateCreated = DateTime.UtcNow
             },
             ct);

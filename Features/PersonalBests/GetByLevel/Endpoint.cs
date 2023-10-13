@@ -7,7 +7,7 @@ using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.PersonalBests.GetByLevel;
 
-public class Endpoint : Endpoint<GenericIdWithLimitOffsetRequestDTO, PersonalBestGetByLevelResponseDTO>
+public class Endpoint : Endpoint<PersonalBestGetByLevelRequestDTO, PersonalBestGetByLevelResponseDTO>
 {
     private readonly GTRContext context;
 
@@ -22,14 +22,14 @@ public class Endpoint : Endpoint<GenericIdWithLimitOffsetRequestDTO, PersonalBes
         Get("/pbs/level/{Id}");
     }
 
-    public override async Task HandleAsync(GenericIdWithLimitOffsetRequestDTO req, CancellationToken ct)
+    public override async Task HandleAsync(PersonalBestGetByLevelRequestDTO req, CancellationToken ct)
     {
         int count = await context.PersonalBests.AsNoTracking()
-            .Where(x => x.Level == x.Id)
+            .Where(x => x.Level == req.Level)
             .CountAsync(ct);
 
         List<PersonalBest> items = await context.PersonalBests.AsNoTracking()
-            .Where(x => x.Level == x.Id)
+            .Where(x => x.Level == req.Level)
             .OrderBy(x => x.Id)
             .Skip(req.Offset!.Value)
             .Take(req.Limit!.Value)

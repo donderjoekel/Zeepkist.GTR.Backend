@@ -27,24 +27,23 @@ internal class Endpoint : Endpoint<VotesGetAverageRequestDTO, VotesGetAverageRes
     /// <inheritdoc />
     public override async Task HandleAsync(VotesGetAverageRequestDTO req, CancellationToken ct)
     {
-        IQueryable<IGrouping<int?, Vote>> query = context.Votes.AsNoTracking()
+        IQueryable<IGrouping<string, Vote>> query = context.Votes.AsNoTracking()
             .OrderBy(x => x.Id)
-            .Include(x => x.LevelNavigation)
             .GroupBy(x => x.Level);
 
-        if (req.LevelId.HasValue)
-            query = query.Where(x => x.Key == req.LevelId.Value);
+        if (req.Level.HasValue())
+            query = query.Where(x => x.Key == req.Level);
 
         List<VotesGetAverageResponseDTO.AverageLevelScore> averageLevelScores = new();
 
-        List<IGrouping<int?, Vote>> groupedVotes = await query.ToListAsync(ct);
-        foreach (IGrouping<int?, Vote> groupedVote in groupedVotes)
+        List<IGrouping<string, Vote>> groupedVotes = await query.ToListAsync(ct);
+        foreach (IGrouping<string, Vote> groupedVote in groupedVotes)
         {
             List<Vote> votes = groupedVote.ToList();
-            double average = votes.Average(x => x.Score!.Value);
+            double average = votes.Average(x => x.Score);
             VotesGetAverageResponseDTO.AverageLevelScore averageLevelScore = new()
             {
-                Level = votes.First().LevelNavigation!.ToResponseModel(),
+                Level = votes.First().Level,
                 AverageScore = (float)average,
                 AmountOfVotes = votes.Count
             };
