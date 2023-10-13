@@ -12,12 +12,13 @@ using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Google;
-using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.PreProcessors;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Backend.Redis;
 using TNRD.Zeepkist.GTR.Backend.Steam;
 using TNRD.Zeepkist.GTR.Database;
+
+// using TNRD.Zeepkist.GTR.Backend.Jobs;
 
 namespace TNRD.Zeepkist.GTR.Backend;
 
@@ -57,10 +58,13 @@ internal class Program
         builder.Services.AddQuartz(q =>
         {
             q.UseMicrosoftDependencyInjectionJobFactory();
-            CreateAndAddJob<CalculateRankingJob>(q, "CalculateRanking", "0 0 0/12 ? * * *", true);
-            CreateAndAddJob<CalculateWorldRecordsJob>(q, "CalculateWorldRecords", "0 0/15 * ? * * *", false);
-            CreateAndAddJob<CalculateHotLevelsJob>(q, "CalculateHotLevels", "0 0/15 * ? * * *", true);
-            CreateAndAddJob<CalculatePopularLevelsJob>(q, "CalculatePopularLevels", "0 0 * ? * * *", true);
+            // CreateAndAddJob<DeleteFilesOnDrive>(q, "DeleteFiles", "0 0 0 1 * ? *", true);
+            // CreateAndAddJob<FixPersonalBestsJob>(q, "FixPersonalBests", "0 0 0/1 ? * * *", true);
+            // CreateAndAddJob<FixWorldRecordsJob>(q, "FixWorldRecords", "0 0 0/1 ? * * *", true);
+            // CreateAndAddJob<CalculateRankingJob>(q, "CalculateRanking", "0 0 0/12 ? * * *", true);
+            // CreateAndAddJob<CalculateWorldRecordsJob>(q, "CalculateWorldRecords", "0 0/15 * ? * * *", true);
+            // CreateAndAddJob<CalculateHotLevelsJob>(q, "CalculateHotLevels", "0 0/15 * ? * * *", true);
+            // CreateAndAddJob<CalculatePopularLevelsJob>(q, "CalculatePopularLevels", "0 0 * ? * * *", true);
         });
 
         builder.Services.AddQuartzServer(options =>
