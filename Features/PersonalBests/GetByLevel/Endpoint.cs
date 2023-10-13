@@ -19,7 +19,7 @@ public class Endpoint : Endpoint<PersonalBestGetByLevelRequestDTO, PersonalBestG
     public override void Configure()
     {
         AllowAnonymous();
-        Get("/pbs/level/{Id}");
+        Get("/pbs/level/{Level}");
     }
 
     public override async Task HandleAsync(PersonalBestGetByLevelRequestDTO req, CancellationToken ct)

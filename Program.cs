@@ -75,7 +75,8 @@ internal class Program
         builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("Rabbit"));
         builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
 
-        builder.Services.AddNpgsql<GTRContext>(builder.Configuration["Database:ConnectionString"]);
+        builder.Services.AddNpgsql<GTRContext>(builder.Configuration["Database:ConnectionString"],
+            options => { options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery); });
 
         builder.Host.UseConsoleLifetime(options => options.SuppressStatusMessages = true);
 
