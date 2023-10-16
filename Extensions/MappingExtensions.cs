@@ -5,17 +5,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Extensions;
 
 internal static class MappingExtensions
 {
-    private static RecordResponseModel ToWorldRecordResponseModel(
-        this Record record,
-        UserResponseModel? user = null
-    )
-    {
-        RecordResponseModel responseModel = record.ToResponseModel(user);
-        responseModel.Level = null;
-        return responseModel;
-    }
-
-    public static UserResponseModel ToResponseModel(this User user, StatsResponseModel? stat = null)
+    public static UserResponseModel ToResponseModel(this User user)
     {
         return new UserResponseModel
         {
@@ -26,60 +16,43 @@ internal static class MappingExtensions
         };
     }
 
-    public static FavoriteResponseModel ToResponseModel(
-        this Favorite favorite,
-        UserResponseModel? user = null
-    )
+    public static FavoriteResponseModel ToResponseModel(this Favorite favorite)
     {
-        return new FavoriteResponseModel()
+        return new FavoriteResponseModel
         {
             Id = favorite.Id,
             Level = favorite.Level,
-            User = user ?? favorite.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = favorite.User }
+            User = favorite.User
         };
     }
 
-    public static UpvoteResponseModel ToResponseModel(
-        this Upvote upvote,
-        UserResponseModel? user = null
-    )
+    public static UpvoteResponseModel ToResponseModel(this Upvote upvote)
     {
-        return new UpvoteResponseModel()
+        return new UpvoteResponseModel
         {
             Id = upvote.Id,
             Level = upvote.Level,
-            User = user ?? upvote.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = upvote.User }
+            User = upvote.User
         };
     }
 
-    public static VoteResponseModel ToResponseModel(
-        this Vote vote,
-        UserResponseModel? user = null
-    )
+    public static VoteResponseModel ToResponseModel(this Vote vote)
     {
-        return new VoteResponseModel()
+        return new VoteResponseModel
         {
             Id = vote.Id,
             Score = vote.Score,
-            Category = vote.Category,
             Level = vote.Level,
-            User = user ?? vote.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = vote.User }
+            User = vote.User
         };
     }
 
-    public static RecordResponseModel ToResponseModel(
-        this Record record,
-        UserResponseModel? user = null
-    )
+    public static RecordResponseModel ToResponseModel(this Record record)
     {
-        return new RecordResponseModel()
+        return new RecordResponseModel
         {
             Level = record.Level,
-            User = user ?? record.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = record.User },
+            User = record.User,
             Id = record.Id,
             IsValid = record.IsValid,
             Splits = string.IsNullOrEmpty(record.Splits)
@@ -91,7 +64,7 @@ internal static class MappingExtensions
         };
     }
 
-    public static StatsResponseModel ToResponseModel(this Stat stat, UserResponseModel? user = null)
+    public static StatsResponseModel ToResponseModel(this Stat stat)
     {
         return new StatsResponseModel
         {
@@ -145,53 +118,40 @@ internal static class MappingExtensions
         };
     }
 
-    public static MediaResponseModel ToResponseModel(this Media media, RecordResponseModel? record = null)
+    public static MediaResponseModel ToResponseModel(this Media media)
     {
         return new MediaResponseModel
         {
             Id = media.Id,
-            Record = record ?? media.RecordNavigation?.ToResponseModel() ??
-                new RecordResponseModel { Id = media.Record },
+            Record = media.Record,
             GhostUrl = media.GhostUrl,
             ScreenshotUrl = media.ScreenshotUrl
         };
     }
 
-    public static PersonalBestResponseModel ToResponseModel(
-        this PersonalBest personalBest,
-        RecordResponseModel? record = null,
-        UserResponseModel? user = null
-    )
+    public static PersonalBestResponseModel ToResponseModel(this PersonalBest personalBest)
     {
-        return new PersonalBestResponseModel()
+        return new PersonalBestResponseModel
         {
             Id = personalBest.Id,
             PeriodEnd = personalBest.PeriodEnd,
             PeriodStart = personalBest.PeriodStart,
-            Record = record ?? personalBest.RecordNavigation?.ToResponseModel() ??
-                new RecordResponseModel { Id = personalBest.Record },
-            User = user ?? personalBest.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel() { Id = personalBest.User },
+            Record = personalBest.Record,
+            User = personalBest.User,
             Level = personalBest.Level
         };
     }
 
-    public static WorldRecordResponseModel ToResponseModel(
-        this WorldRecord personalBest,
-        RecordResponseModel? record = null,
-        UserResponseModel? user = null
-    )
+    public static WorldRecordResponseModel ToResponseModel(this WorldRecord worldRecord)
     {
-        return new WorldRecordResponseModel()
+        return new WorldRecordResponseModel
         {
-            Id = personalBest.Id,
-            PeriodEnd = personalBest.PeriodEnd,
-            PeriodStart = personalBest.PeriodStart,
-            Record = record ?? personalBest.RecordNavigation?.ToResponseModel() ??
-                new RecordResponseModel { Id = personalBest.Record },
-            User = user ?? personalBest.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel() { Id = personalBest.User },
-            Level = personalBest.Level
+            Id = worldRecord.Id,
+            PeriodEnd = worldRecord.PeriodEnd,
+            PeriodStart = worldRecord.PeriodStart,
+            Record = worldRecord.Record,
+            User = worldRecord.User,
+            Level = worldRecord.Level
         };
     }
 }
