@@ -22,10 +22,7 @@ internal static class MappingExtensions
             Id = user.Id,
             DiscordId = user.DiscordId,
             SteamId = user.SteamId,
-            SteamName = user.SteamName,
-            // Bit hacky, should probably just fix the backend to use integer instead of float
-            Score = user.Score.HasValue ? (int)Math.Floor(user.Score.Value) : 0,
-            Position = user.Position
+            SteamName = user.SteamName
         };
     }
 
@@ -82,7 +79,7 @@ internal static class MappingExtensions
         {
             Level = record.Level,
             User = user ?? record.UserNavigation?.ToResponseModel() ??
-                new UserResponseModel { Id = record.User!.Value },
+                new UserResponseModel { Id = record.User },
             Id = record.Id,
             IsValid = record.IsValid,
             Splits = string.IsNullOrEmpty(record.Splits)

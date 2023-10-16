@@ -94,7 +94,7 @@ internal class Endpoint : Endpoint<RecordsSubmitRequestDTO>
                 Record = entry.Entity.Id,
                 User = userId,
                 Level = req.Level,
-                Time = entry.Entity.Time!.Value
+                Time = entry.Entity.Time
             });
 
         publisher.Publish("wr",
@@ -103,7 +103,7 @@ internal class Endpoint : Endpoint<RecordsSubmitRequestDTO>
                 Record = entry.Entity.Id,
                 User = userId,
                 Level = req.Level,
-                Time = entry.Entity.Time!.Value
+                Time = entry.Entity.Time
             });
 
         await SendOkAsync(ct);
@@ -114,7 +114,7 @@ internal class Endpoint : Endpoint<RecordsSubmitRequestDTO>
         string joinedSplits = string.Join('|', req.Splits);
 
         Record? existingRecord = await context.Records.AsNoTracking()
-            .Where(r => r.User == req.User && r.Level == req.Level && Math.Abs(r.Time!.Value - req.Time) < 0.001f &&
+            .Where(r => r.User == req.User && r.Level == req.Level && Math.Abs(r.Time - req.Time) < 0.001f &&
                         r.Splits == joinedSplits)
             .FirstOrDefaultAsync(ct);
 
