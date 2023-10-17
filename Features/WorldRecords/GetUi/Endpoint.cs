@@ -7,7 +7,7 @@ using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.WorldRecords.GetUi;
 
-public class Endpoint : Endpoint<WorldRecordsGetUiRequestDTO, WorldRecordGetUiResponseDTO>
+public class Endpoint : Endpoint<WorldRecordGetUiRequestDTO, WorldRecordGetUiResponseDTO>
 {
     private readonly GTRContext context;
 
@@ -22,7 +22,7 @@ public class Endpoint : Endpoint<WorldRecordsGetUiRequestDTO, WorldRecordGetUiRe
         Get("wrs/ui");
     }
 
-    public override async Task HandleAsync(WorldRecordsGetUiRequestDTO req, CancellationToken ct)
+    public override async Task HandleAsync(WorldRecordGetUiRequestDTO req, CancellationToken ct)
     {
         WorldRecord? worldRecord = await context.WorldRecords
             .AsNoTracking()
