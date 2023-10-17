@@ -1,4 +1,5 @@
-﻿using FastEndpoints;
+﻿using System.Net;
+using FastEndpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
@@ -56,7 +57,7 @@ internal class Endpoint : Endpoint<RecordsSubmitRequestDTO>
         if (await DoesRecordExist(req, ct))
         {
             Logger.LogWarning("Double record submission detected!");
-            ThrowError("Record already exists!");
+            await SendAsync(null, (int)HttpStatusCode.AlreadyReported, ct);
             return;
         }
 
