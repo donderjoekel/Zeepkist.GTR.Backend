@@ -54,6 +54,7 @@ internal class Program
 
     private static void AddServices(WebApplicationBuilder builder)
     {
+        builder.Services.AddHealthChecks();
         builder.Services.AddMemoryCache();
 
         builder.Services.AddQuartz(q =>
@@ -100,6 +101,8 @@ internal class Program
         {
             app.UseDefaultExceptionHandler();
         }
+
+        app.UseHealthChecks("/healthcheck");
 
         app.UseForwardedHeaders(new ForwardedHeadersOptions() { ForwardedHeaders = ForwardedHeaders.All });
 
