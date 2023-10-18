@@ -26,14 +26,18 @@ internal class Endpoint : Endpoint<GenericGetRequestDTO, UsersGetAllResponseDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(GenericGetRequestDTO req, CancellationToken ct)
     {
-        IQueryable<User> query = context.Users.AsNoTracking();
+        IQueryable<User> query = context.Users
+            .AsNoTracking()
+            .OrderBy(x => x.Id);
+
         int count = query.Count();
+
         List<User> users = await query
             .Skip(req.Offset ?? 0)
             .Take(req.Limit ?? 100)
             .ToListAsync(ct);
 
-        UsersGetAllResponseDTO usersGetAllResponseDTO = new UsersGetAllResponseDTO()
+        UsersGetAllResponseDTO usersGetAllResponseDTO = new()
         {
             TotalAmount = count,
             Users = users.Select(x => x.ToResponseModel()).ToList()

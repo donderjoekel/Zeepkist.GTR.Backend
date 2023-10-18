@@ -24,7 +24,9 @@ public class Endpoint : Endpoint<StatsAggregateRequestDTO, StatsResponseModel>
 
     public override async Task HandleAsync(StatsAggregateRequestDTO req, CancellationToken ct)
     {
-        IQueryable<Stat> query = context.Stats.AsNoTracking();
+        IQueryable<Stat> query = context.Stats
+            .AsNoTracking()
+            .OrderBy(x => x.Id);
 
         if (req.Month.HasValue)
             query = query.Where(x => x.Month == req.Month);
@@ -78,7 +80,7 @@ public class Endpoint : Endpoint<StatsAggregateRequestDTO, StatsResponseModel>
                 TimesFinished = x.Sum(y => y.TimesFinished),
                 TimesStarted = x.Sum(y => y.TimesStarted),
                 WheelsBroken = x.Sum(y => y.WheelsBroken),
-                CheckpointsCrossed = x.Sum(y => y.CheckpointsCrossed),
+                CheckpointsCrossed = x.Sum(y => y.CheckpointsCrossed)
             })
             .FirstOrDefaultAsync(ct) ?? new Stat();
 
