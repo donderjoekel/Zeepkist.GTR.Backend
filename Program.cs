@@ -43,6 +43,12 @@ internal class Program
         WebApplication app = builder.Build();
         ConfigureApp(app);
 
+        using (IServiceScope scope = app.Services.CreateScope())
+        {
+            GTRContext db = scope.ServiceProvider.GetRequiredService<GTRContext>();
+            await db.Database.MigrateAsync();
+        }
+
         await app.RunAsync();
     }
 
