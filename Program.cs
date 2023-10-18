@@ -3,19 +3,14 @@ using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.AspNetCore;
 using Serilog;
 using Serilog.Events;
-using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
 using TNRD.Zeepkist.GTR.Backend.Extensions;
-using TNRD.Zeepkist.GTR.Backend.Google;
 using TNRD.Zeepkist.GTR.Backend.PreProcessors;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
-using TNRD.Zeepkist.GTR.Backend.Redis;
-using TNRD.Zeepkist.GTR.Backend.Steam;
 using TNRD.Zeepkist.GTR.Database;
 
 // using TNRD.Zeepkist.GTR.Backend.Jobs;
@@ -74,10 +69,7 @@ internal class Program
         });
 
         builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
-        builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("Steam"));
-        builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
         builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("Rabbit"));
-        builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
 
         builder.Services.AddNpgsql<GTRContext>(builder.Configuration["Database:ConnectionString"],
             options => { options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery); });
@@ -90,14 +82,7 @@ internal class Program
         builder.Services.AddFastEndpoints();
         builder.Services.AddJWTBearerAuth(GetJwtToken(builder));
         builder.Services.AddCors();
-        builder.Services.AddSwaggerDoc(b => { b.Title = "Zeepkist GTR"; }, addJWTBearerAuth: false);
-
-        builder.Services.AddSingleton<IGoogleUploadService, CloudStorageUploadService>();
-        builder.Services.AddSingleton<SteamWebInterfaceFactory>(provider =>
-        {
-            SteamOptions steamOptions = provider.GetRequiredService<IOptions<SteamOptions>>().Value;
-            return new SteamWebInterfaceFactory(steamOptions.Token);
-        });
+        builder.Services.AddSwaggerDoc(b => { b.Title = "Zeepkist GTR"; }, addJWTBearerAuth: true);
 
         builder.Services.AddSingleton<IRabbitPublisher, RabbitPublisher>();
         builder.Services.AddHostedService<RabbitHostedService>();
