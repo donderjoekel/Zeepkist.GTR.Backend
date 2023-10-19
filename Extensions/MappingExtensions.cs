@@ -154,4 +154,14 @@ internal static class MappingExtensions
             Level = worldRecord.Level
         };
     }
+
+    public static LevelPointsResponseModel ToResponseModel(this LevelPoints levelPoints)
+    {
+        return new LevelPointsResponseModel()
+        {
+            Id = levelPoints.Id,
+            Level = levelPoints.Level,
+            Points = levelPoints.Points
+        };
+    }
 }
