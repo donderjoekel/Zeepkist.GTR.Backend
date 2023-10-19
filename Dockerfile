@@ -23,6 +23,6 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Add healthcheck
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD curl --fail http://localhost/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD curl --fail http://localhost/healthcheck || exit 1
 
 ENTRYPOINT ["dotnet", "TNRD.Zeepkist.GTR.Backend.dll"]
