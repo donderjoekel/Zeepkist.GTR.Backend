@@ -3,8 +3,6 @@ using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
 using Microsoft.AspNetCore.HttpOverrides;
-using Quartz;
-using Quartz.AspNetCore;
 using Serilog;
 using Serilog.Events;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
@@ -12,8 +10,6 @@ using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.PreProcessors;
 using TNRD.Zeepkist.GTR.Backend.Rabbit;
 using TNRD.Zeepkist.GTR.Database;
-
-// using TNRD.Zeepkist.GTR.Backend.Jobs;
 
 namespace TNRD.Zeepkist.GTR.Backend;
 
@@ -56,24 +52,6 @@ internal class Program
     {
         builder.Services.AddHealthChecks();
         builder.Services.AddMemoryCache();
-
-        builder.Services.AddQuartz(q =>
-        {
-            q.UseMicrosoftDependencyInjectionJobFactory();
-            // CreateAndAddJob<DeleteFilesOnDrive>(q, "DeleteFiles", "0 0 0 1 * ? *", true);
-            // CreateAndAddJob<FixPersonalBestsJob>(q, "FixPersonalBests", "0 0 0/1 ? * * *", true);
-            // CreateAndAddJob<FixWorldRecordsJob>(q, "FixWorldRecords", "0 0 0/1 ? * * *", true);
-            // CreateAndAddJob<CalculateRankingJob>(q, "CalculateRanking", "0 0 0/12 ? * * *", true);
-            // CreateAndAddJob<CalculateWorldRecordsJob>(q, "CalculateWorldRecords", "0 0/15 * ? * * *", true);
-            // CreateAndAddJob<CalculateHotLevelsJob>(q, "CalculateHotLevels", "0 0/15 * ? * * *", true);
-            // CreateAndAddJob<CalculatePopularLevelsJob>(q, "CalculatePopularLevels", "0 0 * ? * * *", true);
-        });
-
-        builder.Services.AddQuartzServer(options =>
-        {
-            options.AwaitApplicationStarted = true;
-            options.WaitForJobsToComplete = true;
-        });
 
         builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
         builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("Rabbit"));
@@ -133,35 +111,6 @@ internal class Program
             x.Path = string.Empty;
             x.DocumentTitle = "Zeepkist GTR";
         });
-    }
-
-    private static void CreateAndAddJob<TJob>(
-        IServiceCollectionQuartzConfigurator q,
-        string name,
-        string cronSchedule,
-        bool runAtStartup
-    )
-        where TJob : IJob
-    {
-        JobKey key = new($"{name}Job");
-        q.AddJob<TJob>(opts => opts.WithIdentity(key));
-
-        q.AddTrigger(opts =>
-        {
-            opts.ForJob(key)
-                .WithIdentity($"{name}Job-Trigger")
-                .WithCronSchedule(cronSchedule);
-        });
-
-        if (runAtStartup)
-        {
-            q.AddTrigger(opts =>
-            {
-                opts.ForJob(key)
-                    .WithIdentity($"{name}Job-OnStartup")
-                    .StartNow();
-            });
-        }
     }
 
     private static string GetJwtToken(WebApplicationBuilder builder)
