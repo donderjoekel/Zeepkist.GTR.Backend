@@ -164,4 +164,15 @@ internal static class MappingExtensions
             Points = levelPoints.Points
         };
     }
+
+    public static PlayerPointsResponseModel ToResponseModel(this PlayerPoints playerPoints)
+    {
+        return new PlayerPointsResponseModel()
+        {
+            Id = playerPoints.Id,
+            Points = playerPoints.Points,
+            User = playerPoints.User,
+            Rank = playerPoints.Rank
+        };
+    }
 }

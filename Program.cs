@@ -67,7 +67,7 @@ internal class Program
         builder.Services.AddFastEndpoints();
         builder.Services.AddJWTBearerAuth(GetJwtToken(builder));
         builder.Services.AddCors();
-        builder.Services.AddSwaggerDoc(b => { b.Title = "Zeepkist GTR"; }, addJWTBearerAuth: true);
+        builder.Services.AddSwaggerDoc(b => { b.Title = "Zeepkist GTR"; }, addJWTBearerAuth: false);
 
         builder.Services.AddSingleton<IRabbitPublisher, RabbitPublisher>();
         builder.Services.AddHostedService<RabbitHostedService>();
