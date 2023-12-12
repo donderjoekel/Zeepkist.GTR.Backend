@@ -25,11 +25,11 @@ public class Endpoint : Endpoint<GenericIdWithLimitOffsetRequestDTO, WorldRecord
     public override async Task HandleAsync(GenericIdWithLimitOffsetRequestDTO req, CancellationToken ct)
     {
         int count = await context.WorldRecords.AsNoTracking()
-            .Where(x => x.User == x.Id)
+            .Where(x => x.User == req.Id)
             .CountAsync(ct);
 
         List<WorldRecord> items = await context.WorldRecords.AsNoTracking()
-            .Where(x => x.User == x.Id)
+            .Where(x => x.User == req.Id)
             .OrderBy(x => x.Id)
             .Skip(req.Offset!.Value)
             .Take(req.Limit!.Value)

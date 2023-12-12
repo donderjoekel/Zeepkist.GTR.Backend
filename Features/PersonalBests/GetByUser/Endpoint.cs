@@ -24,12 +24,14 @@ public class Endpoint : Endpoint<GenericIdWithLimitOffsetRequestDTO, PersonalBes
 
     public override async Task HandleAsync(GenericIdWithLimitOffsetRequestDTO req, CancellationToken ct)
     {
-        int count = await context.PersonalBests.AsNoTracking()
-            .Where(x => x.User == x.Id)
+        int count = await context.PersonalBests
+            .AsNoTracking()
+            .Where(x => x.User == req.Id)
             .CountAsync(ct);
 
-        List<PersonalBest> items = await context.PersonalBests.AsNoTracking()
-            .Where(x => x.User == x.Id)
+        List<PersonalBest> items = await context.PersonalBests
+            .AsNoTracking()
+            .Where(x => x.User == req.Id)
             .OrderBy(x => x.Id)
             .Skip(req.Offset!.Value)
             .Take(req.Limit!.Value)
