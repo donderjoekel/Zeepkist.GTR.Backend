@@ -16,6 +16,11 @@ internal class Endpoint : Endpoint<RecordsSubmitRequestDTO>
     private readonly GTRContext context;
     private readonly IRabbitPublisher publisher;
 
+    private static readonly string[] bannedLevels = new[]
+    {
+        "BE6DBC63CD48A2B1B0B14E7F337FD4BF0813DD6C" // NYE KICK OR CLUTCH VOTING MAP Decorated by Fred (ioi8)
+    };
+
     public Endpoint(GTRContext context, IRabbitPublisher publisher)
     {
         this.context = context;
@@ -33,6 +38,12 @@ internal class Endpoint : Endpoint<RecordsSubmitRequestDTO>
     /// <inheritdoc />
     public override async Task HandleAsync(RecordsSubmitRequestDTO req, CancellationToken ct)
     {
+        if (bannedLevels.Contains(req.Level, StringComparer.OrdinalIgnoreCase))
+        {
+            await SendOkAsync(ct);
+            return;
+        }
+
         if (!this.TryGetUserId(out int userId))
         {
             Logger.LogCritical("No UserId claim found!");
