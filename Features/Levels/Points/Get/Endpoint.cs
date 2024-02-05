@@ -7,7 +7,7 @@ using TNRD.Zeepkist.GTR.DTOs.ResponseDTOs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Features.Levels.Points.Get;
 
-public class Endpoint : Endpoint<GenericGetRequestDTO, LevelsGetPointsResponseDTO>
+public class Endpoint : Endpoint<LevelGetPointsRequestDTO, LevelsGetPointsResponseDTO>
 {
     private readonly GTRContext context;
 
@@ -22,11 +22,29 @@ public class Endpoint : Endpoint<GenericGetRequestDTO, LevelsGetPointsResponseDT
         Get("levels/points");
     }
 
-    public override async Task HandleAsync(GenericGetRequestDTO req, CancellationToken ct)
+    public override async Task HandleAsync(LevelGetPointsRequestDTO req, CancellationToken ct)
     {
-        List<LevelPoints> levelPoints = await context.LevelPoints
-            .AsNoTracking()
-            .OrderBy(x => x.Id)
+        IQueryable<LevelPoints> query = context.LevelPoints
+            .AsNoTracking();
+
+        if (req.SortByPoints.HasValue)
+        {
+            query = req.Ascending.HasValue
+                ? req.Ascending.Value
+                    ? query.OrderBy(x => x.Points)
+                    : query.OrderByDescending(x => x.Points)
+                : query.OrderByDescending(x => x.Points);
+        }
+        else
+        {
+            query = req.Ascending.HasValue
+                ? req.Ascending.Value
+                    ? query.OrderBy(x => x.Id)
+                    : query.OrderByDescending(x => x.Id)
+                : query.OrderByDescending(x => x.Id);
+        }
+
+        List<LevelPoints> levelPoints = await query
             .Skip(req.Offset!.Value)
             .Take(req.Limit!.Value)
             .ToListAsync(ct);
