@@ -17,6 +17,7 @@ using TNRD.Zeepkist.GTR.Backend;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
 using TNRD.Zeepkist.GTR.Backend.DataStore;
 using TNRD.Zeepkist.GTR.Backend.Favorites;
+using TNRD.Zeepkist.GTR.Backend.Hangfire;
 using TNRD.Zeepkist.GTR.Backend.Hashing;
 using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Jwt;
@@ -246,7 +247,12 @@ app.UseCors(
         .AllowAnyMethod()
         .AllowAnyHeader());
 
-app.UseHangfireDashboard();
+app.UseHangfireDashboard(
+    options: new DashboardOptions()
+    {
+        Authorization = [new HangfireAuthorization()],
+        IsReadOnlyFunc = _ => true
+    });
 
 app.UseAuthentication();
 app.UseAuthorization();
