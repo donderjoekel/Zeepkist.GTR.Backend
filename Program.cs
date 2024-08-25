@@ -28,6 +28,7 @@ using TNRD.Zeepkist.GTR.Backend.Levels.Items;
 using TNRD.Zeepkist.GTR.Backend.Levels.Metadata;
 using TNRD.Zeepkist.GTR.Backend.Levels.Points;
 using TNRD.Zeepkist.GTR.Backend.Levels.Requests;
+using TNRD.Zeepkist.GTR.Backend.Logging;
 using TNRD.Zeepkist.GTR.Backend.Media;
 using TNRD.Zeepkist.GTR.Backend.Media.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Middleware;
@@ -49,13 +50,15 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog(
     (context, provider, configuration) =>
     {
+        LoggerOptions options = provider.GetRequiredService<IOptions<LoggerOptions>>().Value;
+
         configuration
             .Enrich.FromLogContext()
             .WriteTo.OpenObserve(
-                "https://openobserve.sb.tnrd.net",
-                "default",
-                "contact@tnrd.net",
-                "wU01waKkaukjgpKP")
+                options.Url,
+                options.Organization,
+                options.Login,
+                options.Token)
             .WriteTo.Console(
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {SourceContext}] {Message:lj}{NewLine}{Exception}",
                 restrictedToMinimumLevel: LogEventLevel.Information)
@@ -208,6 +211,7 @@ builder.Services.Configure<GoogleCloudStorageOptions>(builder.Configuration.GetS
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection(SteamOptions.Key));
 builder.Services.Configure<WasabiStorageOptions>(builder.Configuration.GetSection(WasabiStorageOptions.Key));
 builder.Services.Configure<WorkshopOptions>(builder.Configuration.GetSection(WorkshopOptions.Key));
+builder.Services.Configure<LoggerOptions>(builder.Configuration.GetSection(LoggerOptions.Key));
 
 builder.Services.AddRefitClient<IPublishedFileServiceApi>(
         provider => new RefitSettings()
