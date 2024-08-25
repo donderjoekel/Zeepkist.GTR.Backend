@@ -8,32 +8,13 @@ using Object = Google.Apis.Storage.v1.Data.Object;
 
 namespace TNRD.Zeepkist.GTR.Backend.RemoteStorage;
 
-public interface IRemoteStorageService
+public class GoogleCloudStorageService //: IRemoteStorageService
 {
-    Task<Result<string>> Upload(
-        string b64,
-        string folder,
-        string name,
-        string extension,
-        string contentType,
-        bool withEncoding);
-
-    Task<Result<string>> Upload(
-        byte[] buffer,
-        string folder,
-        string name,
-        string extension,
-        string contentType,
-        bool withEncoding);
-}
-
-public class RemoteStorageService : IRemoteStorageService
-{
-    private readonly RemoteStorageOptions _options;
+    private readonly GoogleCloudStorageOptions _options;
 
     private StorageClient? _storageClient;
 
-    public RemoteStorageService(IOptions<RemoteStorageOptions> options)
+    public GoogleCloudStorageService(IOptions<GoogleCloudStorageOptions> options)
     {
         _options = options.Value;
     }

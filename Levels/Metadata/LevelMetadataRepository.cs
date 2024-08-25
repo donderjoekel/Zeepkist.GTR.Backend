@@ -17,6 +17,6 @@ public class LevelMetadataRepository : BasicRepository<LevelMetadata>, ILevelMet
 
     public bool ExistsForLevel(int levelId)
     {
-        return Query(x => x.IdLevel == levelId).Any();
+        return Exists(x => x.IdLevel == levelId);
     }
 }

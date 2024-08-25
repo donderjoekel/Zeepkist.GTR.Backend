@@ -12,6 +12,8 @@ namespace TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 
 public class FullWorkshopScanJob : WorkshopScanJob
 {
+    private static bool IsRunning = false;
+
     private readonly IPublishedFileServiceApi _publishedFileServiceApi;
     private readonly SteamOptions _steamOptions;
 
@@ -41,20 +43,59 @@ public class FullWorkshopScanJob : WorkshopScanJob
     [UsedImplicitly]
     public async Task ExecuteAsync()
     {
+        if (IsRunning)
+        {
+            Logger.LogInformation("Full workshop scan already running");
+            return;
+        }
+
+        IsRunning = true;
+        Logger.LogInformation("Starting full workshop scan");
+
         string cursor = "*";
+        int attempts = 0;
 
         while (true)
         {
+            Logger.LogInformation("Scanning page {Cursor}", cursor);
             QueryFilesResult result
                 = await _publishedFileServiceApi.QueryFiles(_steamOptions.ApiKey, cursor);
 
             string currentCursor = cursor;
             cursor = result.Response.NextCursor;
 
-            await ProcessPage(result);
+            if (cursor == currentCursor && result.Response.PublishedFileDetails == null)
+            {
+                Logger.LogInformation("Reached end of listing {Cursor}", cursor);
+                break; // No more pages
+            }
+
+            try
+            {
+                await ProcessPage(result);
+                attempts = 0;
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Failed to process page {Cursor}", cursor);
+                if (attempts >= 3)
+                {
+                    Logger.LogError("Failed to process page {Cursor} after 3 attempts", cursor);
+                    break;
+                }
+
+                Logger.LogInformation("Changing cursor back from {Current} to {Previous}", cursor, currentCursor);
+                cursor = currentCursor;
+                int delay = 5 * ++attempts;
+                Logger.LogInformation("Waiting {Delay} minutes", delay);
+                await Task.Delay(TimeSpan.FromMinutes(delay));
+                continue;
+            }
 
             if (cursor == currentCursor)
                 break;
         }
+
+        IsRunning = false;
     }
 }

@@ -45,7 +45,6 @@ public class AuthenticationController : ControllerBase
         return Ok(result.Value);
     }
 
-    [HttpPost]
     [HttpPost("refresh")]
     public IActionResult Refresh([FromBody] RefreshResource resource)
     {

@@ -3,6 +3,10 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
+using TNRD.Zeepkist.GTR.Backend.Levels.Points.Jobs;
+using TNRD.Zeepkist.GTR.Backend.PersonalBests.Jobs;
+using TNRD.Zeepkist.GTR.Backend.Users.Points.Jobs;
+using TNRD.Zeepkist.GTR.Backend.WorldRecords.Jobs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Jobs;
 
@@ -34,9 +38,13 @@ public class JobScheduler : IJobScheduler
 
     public void ScheduleRecurringJobs()
     {
-        // TODO: Uncomment when ready
-        // ScheduleRecurringJob<FullWorkshopScanJob>("0 0 1 * *");
-        // ScheduleRecurringJob<PartialWorkshopScanJob>("*/15 * * * *");
+        ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
+        ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
+
+        ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Never());
+        ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Never());
+        ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
+        ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Never());
     }
 
     private void ScheduleRecurringJob<TJob>(string cronExpression)
@@ -46,7 +54,7 @@ public class JobScheduler : IJobScheduler
             typeof(TJob).GetMethod("ExecuteAsync", BindingFlags.Public | BindingFlags.Instance));
 
         _recurringJobManager.AddOrUpdate(
-            Guid.NewGuid().ToString(),
+            typeof(TJob).Name,
             job,
             cronExpression);
     }

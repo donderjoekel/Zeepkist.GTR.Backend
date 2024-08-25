@@ -1,16 +1,19 @@
 ﻿using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using TNRD.Zeepkist.GTR.Database.Data.Entities;
 
 namespace TNRD.Zeepkist.GTR.Backend.PersonalBests;
 
 public interface IPersonalBestsService
 {
-    void UpdateDailyPersonalBest(Record record, int userId, int levelId);
-    void UpdateWeeklyPersonalBest(Record record, int userId, int levelId);
-    void UpdateMonthlyPersonalBest(Record record, int userId, int levelId);
-    void UpdateQuarterlyPersonalBest(Record record, int userId, int levelId);
-    void UpdateYearlyPersonalBest(Record record, int userId, int levelId);
-    void UpdateGlobalPersonalBest(Record record, int userId, int levelId);
+    IEnumerable<PersonalBestGlobal> GetAllIncludingRecord();
+    IEnumerable<PersonalBestGlobal> GetForLevel(int levelId);
+    void UpdateDaily(Record record, int userId, int levelId);
+    void UpdateWeekly(Record record, int userId, int levelId);
+    void UpdateMonthly(Record record, int userId, int levelId);
+    void UpdateQuarterly(Record record, int userId, int levelId);
+    void UpdateYearly(Record record, int userId, int levelId);
+    void UpdateGlobal(Record record, int userId, int levelId);
 }
 
 public class PersonalBestsService : IPersonalBestsService
@@ -38,146 +41,216 @@ public class PersonalBestsService : IPersonalBestsService
         _yearlyRepository = yearlyRepository;
     }
 
-    public void UpdateDailyPersonalBest(Record record, int userId, int levelId)
+    public IEnumerable<PersonalBestGlobal> GetAllIncludingRecord()
     {
-        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated);
-        int day = CultureInfo.InvariantCulture.Calendar.GetDayOfYear(record.DateCreated);
-
-        _dailyRepository.Upsert(
-            daily => daily.IdUser == userId
-                     && daily.IdLevel == levelId
-                     && daily.Year == year
-                     && daily.Day == day,
-            () => new PersonalBestDaily()
-            {
-                IdRecord = record.Id,
-                IdUser = userId,
-                IdLevel = levelId,
-                Year = year,
-                Day = day
-            },
-            daily =>
-            {
-                daily.IdRecord = record.Id;
-                return daily;
-            });
+        return _globalRepository.GetAll(set => { return set.Include(x => x.Record); });
     }
 
-    public void UpdateWeeklyPersonalBest(Record record, int userId, int levelId)
+    public IEnumerable<PersonalBestGlobal> GetForLevel(int levelId)
     {
-        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated);
+        return _globalRepository.GetAll(global => global.IdLevel == levelId);
+    }
+
+    public void UpdateDaily(Record record, int userId, int levelId)
+    {
+        if (!record.IsValid)
+            return;
+
+        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated.UtcDateTime);
+        int day = CultureInfo.InvariantCulture.Calendar.GetDayOfYear(record.DateCreated.UtcDateTime);
+
+        PersonalBestDaily? existing
+            = _dailyRepository.GetSingle(
+                x => x.IdUser == userId
+                     && x.IdLevel == levelId
+                     && x.Year == year
+                     && x.Day == day,
+                set => set.Include(x => x.Record));
+
+        if (existing == null)
+        {
+            _dailyRepository.Insert(
+                new PersonalBestDaily()
+                {
+                    IdRecord = record.Id,
+                    IdUser = userId,
+                    IdLevel = levelId,
+                    Year = year,
+                    Day = day
+                });
+        }
+        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        {
+            existing.IdRecord = record.Id;
+            _dailyRepository.Update(existing);
+        }
+    }
+
+    public void UpdateWeekly(Record record, int userId, int levelId)
+    {
+        if (!record.IsValid)
+            return;
+
+        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated.UtcDateTime);
         int week = CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(
-            record.DateCreated,
+            record.DateCreated.UtcDateTime,
             CalendarWeekRule.FirstDay,
             DayOfWeek.Monday);
 
-        _weeklyRepository.Upsert(
-            weekly => weekly.IdUser == userId
-                      && weekly.IdLevel == levelId
-                      && weekly.Year == year
-                      && weekly.Week == week,
-            () => new PersonalBestWeekly()
-            {
-                IdRecord = record.Id,
-                IdUser = userId,
-                IdLevel = levelId,
-                Year = year,
-                Week = week
-            },
-            weekly =>
-            {
-                weekly.IdRecord = record.Id;
-                return weekly;
-            });
+        PersonalBestWeekly? existing
+            = _weeklyRepository.GetSingle(
+                x => x.IdUser == userId
+                     && x.IdLevel == levelId
+                     && x.Year == year
+                     && x.Week == week,
+                set => set.Include(x => x.Record));
+
+        if (existing == null)
+        {
+            _weeklyRepository.Insert(
+                new PersonalBestWeekly()
+                {
+                    IdRecord = record.Id,
+                    IdUser = userId,
+                    IdLevel = levelId,
+                    Year = year,
+                    Week = week
+                });
+        }
+        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        {
+            existing.IdRecord = record.Id;
+            _weeklyRepository.Update(existing);
+        }
     }
 
-    public void UpdateMonthlyPersonalBest(Record record, int userId, int levelId)
+    public void UpdateMonthly(Record record, int userId, int levelId)
     {
-        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated);
-        int month = CultureInfo.InvariantCulture.Calendar.GetMonth(record.DateCreated);
+        if (!record.IsValid)
+            return;
 
-        _monthlyRepository.Upsert(
-            monthly => monthly.IdUser == userId
-                       && monthly.IdLevel == levelId
-                       && monthly.Year == year
-                       && monthly.Month == month,
-            () => new PersonalBestMonthly()
-            {
-                IdRecord = record.Id,
-                IdUser = userId,
-                IdLevel = levelId,
-                Year = year,
-                Month = month
-            },
-            monthly =>
-            {
-                monthly.IdRecord = record.Id;
-                return monthly;
-            });
+        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated.UtcDateTime);
+        int month = CultureInfo.InvariantCulture.Calendar.GetMonth(record.DateCreated.UtcDateTime);
+
+        PersonalBestMonthly? existing
+            = _monthlyRepository.GetSingle(
+                x => x.IdUser == userId
+                     && x.IdLevel == levelId
+                     && x.Year == year
+                     && x.Month == month,
+                set => set.Include(x => x.Record));
+
+        if (existing == null)
+        {
+            _monthlyRepository.Insert(
+                new PersonalBestMonthly()
+                {
+                    IdRecord = record.Id,
+                    IdUser = userId,
+                    IdLevel = levelId,
+                    Year = year,
+                    Month = month
+                });
+        }
+        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        {
+            existing.IdRecord = record.Id;
+            _monthlyRepository.Update(existing);
+        }
     }
 
-    public void UpdateQuarterlyPersonalBest(Record record, int userId, int levelId)
+    public void UpdateQuarterly(Record record, int userId, int levelId)
     {
-        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated);
-        int quarter = (CultureInfo.InvariantCulture.Calendar.GetMonth(record.DateCreated) - 1) / 3 + 1;
+        if (!record.IsValid)
+            return;
 
-        _quarterlyRepository.Upsert(
-            quarterly => quarterly.IdUser == userId
-                         && quarterly.IdLevel == levelId
-                         && quarterly.Year == year
-                         && quarterly.Quarter == quarter,
-            () => new PersonalBestQuarterly()
-            {
-                IdRecord = record.Id,
-                IdUser = userId,
-                IdLevel = levelId,
-                Year = year,
-                Quarter = quarter
-            },
-            quarterly =>
-            {
-                quarterly.IdRecord = record.Id;
-                return quarterly;
-            });
+        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated.UtcDateTime);
+        int quarter = (CultureInfo.InvariantCulture.Calendar.GetMonth(record.DateCreated.UtcDateTime) - 1) / 3 + 1;
+
+        PersonalBestQuarterly? existing
+            = _quarterlyRepository.GetSingle(
+                x => x.IdUser == userId
+                     && x.IdLevel == levelId
+                     && x.Year == year
+                     && x.Quarter == quarter,
+                set => set.Include(x => x.Record));
+
+        if (existing == null)
+        {
+            _quarterlyRepository.Insert(
+                new PersonalBestQuarterly()
+                {
+                    IdRecord = record.Id,
+                    IdUser = userId,
+                    IdLevel = levelId,
+                    Year = year,
+                    Quarter = quarter
+                });
+        }
+        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        {
+            existing.IdRecord = record.Id;
+            _quarterlyRepository.Update(existing);
+        }
     }
 
-    public void UpdateYearlyPersonalBest(Record record, int userId, int levelId)
+    public void UpdateYearly(Record record, int userId, int levelId)
     {
-        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated);
+        if (!record.IsValid)
+            return;
 
-        _yearlyRepository.Upsert(
-            yearly => yearly.IdUser == userId
-                      && yearly.IdLevel == levelId
-                      && yearly.Year == year,
-            () => new PersonalBestYearly()
-            {
-                IdRecord = record.Id,
-                IdUser = userId,
-                IdLevel = levelId,
-                Year = year
-            },
-            yearly =>
-            {
-                yearly.IdRecord = record.Id;
-                return yearly;
-            });
+        int year = CultureInfo.InvariantCulture.Calendar.GetYear(record.DateCreated.UtcDateTime);
+
+        PersonalBestYearly? existing
+            = _yearlyRepository.GetSingle(
+                x => x.IdUser == userId
+                     && x.IdLevel == levelId
+                     && x.Year == year,
+                set => set.Include(x => x.Record));
+
+        if (existing == null)
+        {
+            _yearlyRepository.Insert(
+                new PersonalBestYearly()
+                {
+                    IdRecord = record.Id,
+                    IdUser = userId,
+                    IdLevel = levelId,
+                    Year = year
+                });
+        }
+        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        {
+            existing.IdRecord = record.Id;
+            _yearlyRepository.Update(existing);
+        }
     }
 
-    public void UpdateGlobalPersonalBest(Record record, int userId, int levelId)
+    public void UpdateGlobal(Record record, int userId, int levelId)
     {
-        _globalRepository.Upsert(
-            global => global.IdUser == userId
-                      && global.IdLevel == levelId,
-            () => new PersonalBestGlobal()
-            {
-                IdRecord = record.Id,
-                IdUser = userId,
-                IdLevel = levelId
-            },
-            global =>
-            {
-                global.IdRecord = record.Id;
-                return global;
-            });
+        if (!record.IsValid)
+            return;
+
+        PersonalBestGlobal? existing
+            = _globalRepository.GetSingle(
+                x => x.IdUser == userId
+                     && x.IdLevel == levelId,
+                set => set.Include(x => x.Record));
+
+        if (existing == null)
+        {
+            _globalRepository.Insert(
+                new PersonalBestGlobal()
+                {
+                    IdRecord = record.Id,
+                    IdUser = userId,
+                    IdLevel = levelId
+                });
+        }
+        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        {
+            existing.IdRecord = record.Id;
+            _globalRepository.Update(existing);
+        }
     }
 }

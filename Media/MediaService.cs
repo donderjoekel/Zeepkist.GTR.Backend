@@ -9,6 +9,7 @@ public interface IMediaService
     bool HasGhost(int recordId);
     bool HasScreenshot(int recordId);
 
+    Result InsertUrls(int recordId, string ghostUrl, string screenshotUrl);
     Task<Result<string>> UploadGhost(int recordId, string b64, string identifier);
     Task<Result<string>> UploadScreenshot(int recordId, string b64, string identifier);
 }
@@ -16,11 +17,11 @@ public interface IMediaService
 public class MediaService : IMediaService
 {
     private const string GhostsFolder = "ghosts";
-    private const string GhostsExtension = "bin";
+    private const string GhostsExtension = ".ghost";
     private const string GhostsContentType = "application/octet-stream";
 
     private const string ScreenshotsFolder = "screenshots";
-    private const string ScreenshotsExtension = "jpeg";
+    private const string ScreenshotsExtension = ".jpeg";
     private const string ScreenshotsContentType = "image/jpeg";
 
     private readonly IMediaRepository _repository;
@@ -40,6 +41,26 @@ public class MediaService : IMediaService
     public bool HasScreenshot(int recordId)
     {
         return _repository.HasScreenshot(recordId);
+    }
+
+    public Result InsertUrls(int recordId, string ghostUrl, string screenshotUrl)
+    {
+        RecordMedia recordMedia = _repository.Upsert(
+            recordId,
+            () => new RecordMedia()
+            {
+                IdRecord = recordId,
+                GhostUrl = ghostUrl,
+                ScreenshotUrl = screenshotUrl,
+            },
+            media =>
+            {
+                media.GhostUrl = ghostUrl;
+                media.ScreenshotUrl = screenshotUrl;
+                return media;
+            });
+
+        return Result.Ok();
     }
 
     public async Task<Result<string>> UploadGhost(int recordId, string b64, string identifier)
@@ -75,13 +96,11 @@ public class MediaService : IMediaService
 
     public async Task<Result<string>> UploadScreenshot(int recordId, string b64, string identifier)
     {
-        Result<string> result = await _remoteStorageService.Upload(
+        Result<string> result = await _remoteStorageService.UploadImage(
             b64,
             ScreenshotsFolder,
             identifier,
-            ScreenshotsExtension,
-            ScreenshotsContentType,
-            false);
+            ScreenshotsExtension);
 
         if (result.IsFailed)
         {

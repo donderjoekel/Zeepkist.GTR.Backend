@@ -6,6 +6,7 @@ using TNRD.Zeepkist.GTR.Backend.Steam.Resources;
 using TNRD.Zeepkist.GTR.Backend.Workshop;
 using TNRD.Zeepkist.GTR.Backend.Zeeplevel;
 using TNRD.Zeepkist.GTR.Backend.Zeeplevel.Resources;
+using TNRD.Zeepkist.GTR.Database.Data.Entities;
 
 namespace TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 
@@ -18,6 +19,8 @@ public abstract class WorkshopScanJob
     private readonly ILevelItemsService _levelItemsService;
     private readonly IWorkshopService _workshopService;
     private readonly IZeeplevelService _zeeplevelService;
+
+    public ILogger Logger => _logger;
 
     protected WorkshopScanJob(
         ILogger logger,
@@ -101,14 +104,14 @@ public abstract class WorkshopScanJob
 
         string hash = _hashService.Hash(zeepLevel);
 
-        if (!_levelService.TryGetByHash(hash, out _))
+        if (!_levelService.TryGetByHash(hash, out Level? level))
         {
-            _levelService.Create(hash);
+            level = _levelService.Create(hash);
         }
 
         if (!_levelItemsService.Exists(publishedFileDetails, zeepLevel, hash))
         {
-            _levelItemsService.Create(publishedFileDetails, workshopLevel, zeepLevel, hash);
+            _levelItemsService.Create(publishedFileDetails, workshopLevel, zeepLevel, level);
         }
 
         if (!_levelMetadataService.Exists(hash))

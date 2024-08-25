@@ -1,4 +1,6 @@
-﻿using Docker.DotNet;
+﻿using System.Diagnostics;
+using CliWrap;
+using Docker.DotNet;
 using Docker.DotNet.Models;
 using FluentResults;
 using Microsoft.Extensions.Options;
@@ -31,9 +33,10 @@ public class WorkshopService : IWorkshopService
     public async Task<Result<WorkshopDownloads>> DownloadWorkshopItems(IEnumerable<ulong> publishedFileIds)
     {
         string guid = Guid.NewGuid().ToString();
-        bool success = await RunDockerProcess(guid, CreateParameters(publishedFileIds));
+        CommandResult commandResult = await RunProcess(guid, CreateParameters(guid, publishedFileIds));
+        // bool success = await RunDockerProcess(guid, CreateParameters(guid, publishedFileIds));
 
-        if (!success)
+        if (!commandResult.IsSuccess)
         {
             return Result.Fail("Failed to download workshop items");
         }
@@ -119,6 +122,14 @@ public class WorkshopService : IWorkshopService
         throw new NotImplementedException();
     }
 
+    private Task<CommandResult> RunProcess(string guid, IEnumerable<string> parameters)
+    {
+        return Cli.Wrap("steamcmd")
+            .WithArguments(parameters)
+            .WithStandardOutputPipe(PipeTarget.ToDelegate(p => _logger.LogInformation("{Output}", p)))
+            .ExecuteAsync();
+    }
+
     private async Task<bool> RunDockerProcess(string guid, IEnumerable<string> parameters)
     {
         CreateContainerResponse createResponse = await _docker.Containers.CreateContainerAsync(
@@ -132,7 +143,7 @@ public class WorkshopService : IWorkshopService
                     {
                         Path.Combine(_options.MountPath, guid) + ":/data"
                     }
-                }
+                },
             });
 
         try
@@ -173,14 +184,14 @@ public class WorkshopService : IWorkshopService
         }
     }
 
-    private static IEnumerable<string> CreateParameters(ulong publishedFileId)
+    private IEnumerable<string> CreateParameters(string guid, ulong publishedFileId)
     {
-        return CreateParameters(new[] { publishedFileId });
+        return CreateParameters(guid, new[] { publishedFileId });
     }
 
-    private static IEnumerable<string> CreateParameters(IEnumerable<ulong> publishedFileIds)
+    private IEnumerable<string> CreateParameters(string guid, IEnumerable<ulong> publishedFileIds)
     {
-        yield return "+force_install_dir /data";
+        yield return $"+force_install_dir {Path.Combine(_options.MountPath, guid)}";
         yield return "+login anonymous";
 
         foreach (ulong publishedFileId in publishedFileIds)

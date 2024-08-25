@@ -25,12 +25,12 @@ public class ProcessPersonalBestJob
             throw new InvalidOperationException($"Record with ID '{recordId}' not found");
         }
 
-        _personalBestsService.UpdateDailyPersonalBest(record, userId, levelId);
-        _personalBestsService.UpdateWeeklyPersonalBest(record, userId, levelId);
-        _personalBestsService.UpdateMonthlyPersonalBest(record, userId, levelId);
-        _personalBestsService.UpdateQuarterlyPersonalBest(record, userId, levelId);
-        _personalBestsService.UpdateYearlyPersonalBest(record, userId, levelId);
-        _personalBestsService.UpdateGlobalPersonalBest(record, userId, levelId);
+        _personalBestsService.UpdateDaily(record, userId, levelId);
+        _personalBestsService.UpdateWeekly(record, userId, levelId);
+        _personalBestsService.UpdateMonthly(record, userId, levelId);
+        _personalBestsService.UpdateQuarterly(record, userId, levelId);
+        _personalBestsService.UpdateYearly(record, userId, levelId);
+        _personalBestsService.UpdateGlobal(record, userId, levelId);
         return Task.CompletedTask;
     }
 

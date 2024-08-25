@@ -17,7 +17,7 @@ public class LevelItemsRepository : BasicRepository<LevelItem>, ILevelItemsRepos
 
     public bool Exists(int levelId, decimal workshopId, decimal authorId, string fileUid)
     {
-        return Query(
+        return GetAll(
                 x => x.IdLevel == levelId
                      && x.WorkshopId == workshopId
                      && x.AuthorId == authorId

@@ -12,6 +12,8 @@ public interface IHashService
 
 public class HashService : IHashService
 {
+    private const int PresentBlockID = 2264;
+
     private readonly Vector3Comparer _vector3Comparer = new();
     private readonly SequenceComparer<int> _intSequenceComparer = new();
     private readonly SequenceComparer<float> _floatSequenceComparer = new();
@@ -22,7 +24,9 @@ public class HashService : IHashService
         inputBuilder.AppendLine(zeepLevel.Skybox.ToString());
         inputBuilder.AppendLine(zeepLevel.Ground.ToString());
 
-        List<ZeepBlock> orderedBlocks = zeepLevel.Blocks.OrderBy(x => x.Id)
+        List<ZeepBlock> orderedBlocks = zeepLevel.Blocks
+            .Where(x => x.Id != PresentBlockID)
+            .OrderBy(x => x.Id)
             .ThenBy(x => x.Position, _vector3Comparer)
             .ThenBy(x => x.Euler, _vector3Comparer)
             .ThenBy(x => x.Scale, _vector3Comparer)

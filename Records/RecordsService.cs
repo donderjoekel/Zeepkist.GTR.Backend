@@ -1,6 +1,7 @@
 ﻿using FluentResults;
 using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Levels;
+using TNRD.Zeepkist.GTR.Backend.Media;
 using TNRD.Zeepkist.GTR.Backend.Media.Jobs;
 using TNRD.Zeepkist.GTR.Backend.PersonalBests.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Records.Resources;
@@ -13,6 +14,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Records;
 
 public interface IRecordsService
 {
+    IEnumerable<Record> GetAll();
     Record? GetById(int id);
     Result Submit(ulong steamId, RecordResource resource);
 }
@@ -24,19 +26,27 @@ public class RecordsService : IRecordsService
     private readonly ILevelService _levelService;
     private readonly IJobScheduler _jobScheduler;
     private readonly IUserService _userService;
+    private readonly IMediaService _mediaService;
 
     public RecordsService(
         ILogger<RecordsService> logger,
         IRecordsRepository repository,
         ILevelService levelService,
         IJobScheduler jobScheduler,
-        IUserService userService)
+        IUserService userService,
+        IMediaService mediaService)
     {
         _logger = logger;
         _repository = repository;
         _levelService = levelService;
         _jobScheduler = jobScheduler;
         _userService = userService;
+        _mediaService = mediaService;
+    }
+
+    public IEnumerable<Record> GetAll()
+    {
+        return _repository.GetAll();
     }
 
     public Record? GetById(int id)

@@ -38,7 +38,7 @@ public class ZeeplevelService : IZeeplevelService
         if (!ParseValidationLine(lines[2], level))
             return null;
 
-        if (!ParseBlocks(lines[3..], level))
+        if (!ParseBlocks(lines[3..].Where(x => !string.IsNullOrWhiteSpace(x)).ToArray(), level))
             return null;
 
         return level;

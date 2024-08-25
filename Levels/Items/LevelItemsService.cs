@@ -10,13 +10,14 @@ namespace TNRD.Zeepkist.GTR.Backend.Levels.Items;
 
 public interface ILevelItemsService
 {
+    bool ExistsForLevel(int levelId);
     bool Exists(PublishedFileDetails publishedFileDetails, ZeepLevel zeepLevel, string hash);
 
     void Create(
         PublishedFileDetails publishedFileDetails,
         WorkshopLevel workshopLevel,
         ZeepLevel zeepLevel,
-        string hash);
+        Level level);
 }
 
 public class LevelItemsService : ILevelItemsService
@@ -36,6 +37,11 @@ public class LevelItemsService : ILevelItemsService
         _levelService = levelService;
         _logger = logger;
         _remoteStorageService = remoteStorageService;
+    }
+
+    public bool ExistsForLevel(int levelId)
+    {
+        return _repository.Exists(x => x.IdLevel == levelId);
     }
 
     public bool Exists(PublishedFileDetails publishedFileDetails, ZeepLevel zeepLevel, string hash)
@@ -75,14 +81,8 @@ public class LevelItemsService : ILevelItemsService
         PublishedFileDetails publishedFileDetails,
         WorkshopLevel workshopLevel,
         ZeepLevel zeepLevel,
-        string hash)
+        Level level)
     {
-        if (!_levelService.TryGetByHash(hash, out Level? level))
-        {
-            _logger.LogWarning("Unable to create level item because there is no level with hash {Hash}", hash);
-            return;
-        }
-
         if (_repository.Exists(
                 level.Id,
                 decimal.Parse(publishedFileDetails.PublishedFileId),
@@ -93,13 +93,8 @@ public class LevelItemsService : ILevelItemsService
         }
 
         byte[] buffer = File.ReadAllBytes(workshopLevel.ThumbnailPath);
-        Result<string> uploadResult = _remoteStorageService.Upload(
-                buffer,
-                "thumbnails",
-                Guid.NewGuid().ToString(),
-                ".jpg",
-                "image/jpeg",
-                false)
+        Result<string> uploadResult = _remoteStorageService
+            .UploadImage(buffer, "thumbnails", Guid.NewGuid().ToString(), ".jpg")
             .GetAwaiter().GetResult();
 
         if (uploadResult.IsFailed)

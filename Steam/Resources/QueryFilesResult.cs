@@ -11,5 +11,5 @@ public class Response
 {
     [JsonProperty("total")] public int Total { get; set; }
     [JsonProperty("next_cursor")] public string NextCursor { get; set; }
-    [JsonProperty("publishedfiledetails")] public PublishedFileDetails[] PublishedFileDetails { get; set; }
+    [JsonProperty("publishedfiledetails")] public PublishedFileDetails[]? PublishedFileDetails { get; set; }
 }

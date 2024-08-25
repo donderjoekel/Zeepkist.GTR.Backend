@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TNRD.Zeepkist.GTR.Backend.Jwt;
 using TNRD.Zeepkist.GTR.Backend.Records.Resources;
@@ -7,7 +6,7 @@ using TNRD.Zeepkist.GTR.Backend.Records.Resources;
 namespace TNRD.Zeepkist.GTR.Backend.Records;
 
 [ApiController]
-[Route("[controller]")]
+[Route("records")]
 public class RecordsController : ControllerBase
 {
     private readonly IRecordsService _service;
@@ -17,7 +16,7 @@ public class RecordsController : ControllerBase
         _service = service;
     }
 
-    [HttpPost]
+    [HttpPost("submit")]
     public IActionResult Submit([FromBody] RecordResource record)
     {
         string? value = User.FindFirstValue(IJwtService.SteamIdClaimName);

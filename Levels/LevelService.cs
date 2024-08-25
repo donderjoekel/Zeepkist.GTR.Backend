@@ -7,6 +7,7 @@ public interface ILevelService
 {
     Level Create(string hash);
     bool TryGetByHash(string hash, [NotNullWhen(true)] out Level? level);
+    IEnumerable<int> GetAllIds();
 }
 
 public class LevelService : ILevelService
@@ -18,6 +19,11 @@ public class LevelService : ILevelService
     {
         _repository = repository;
         _resetEvent = new AutoResetEvent(true);
+    }
+
+    public IEnumerable<int> GetAllIds()
+    {
+        return _repository.GetAll().Select(x => x.Id);
     }
 
     public Level Create(string hash)

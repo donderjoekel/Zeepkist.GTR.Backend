@@ -5,7 +5,10 @@ namespace TNRD.Zeepkist.GTR.Backend.Users;
 
 public interface IUserService
 {
+    int Count();
     User Create(ulong steamId);
+    IEnumerable<User> GetAll();
+    bool TryGet(int id, [NotNullWhen(true)] out User? user);
     bool TryGet(ulong steamId, [NotNullWhen(true)] out User? user);
 }
 
@@ -18,6 +21,11 @@ public class UserService : IUserService
         _repository = repository;
     }
 
+    public int Count()
+    {
+        return _repository.Count();
+    }
+
     public User Create(ulong steamId)
     {
         User user = new()
@@ -27,6 +35,17 @@ public class UserService : IUserService
         };
 
         return _repository.Insert(user);
+    }
+
+    public IEnumerable<User> GetAll()
+    {
+        return _repository.GetAll();
+    }
+
+    public bool TryGet(int id, [NotNullWhen(true)] out User? user)
+    {
+        user = _repository.GetById(id);
+        return user != null;
     }
 
     public bool TryGet(ulong steamId, [NotNullWhen(true)] out User? user)

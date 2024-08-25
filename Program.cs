@@ -1,8 +1,10 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
+using ByteSizeLib;
 using Docker.DotNet;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +12,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Refit;
 using Serilog;
+using Serilog.Enrichers.ShortTypeName;
+using Serilog.Events;
+using Serilog.Filters;
 using SteamWebAPI2.Utilities;
 using TNRD.Zeepkist.GTR.Backend;
 using TNRD.Zeepkist.GTR.Backend.Authentication;
@@ -45,9 +50,22 @@ builder.Host.UseSerilog(
     (context, provider, configuration) =>
     {
         configuration
-            .WriteTo.Console()
-            .MinimumLevel.Debug();
+            .Enrich.FromLogContext()
+            .WriteTo.OpenObserve(
+                "https://openobserve.sb.tnrd.net",
+                "default",
+                "contact@tnrd.net",
+                "wU01waKkaukjgpKP")
+            .WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {SourceContext}] {Message:lj}{NewLine}{Exception}",
+                restrictedToMinimumLevel: LogEventLevel.Information)
+            .Filter.ByExcluding(Matching.FromSource("Microsoft.EntityFrameworkCore"))
+            .MinimumLevel.Information();
     });
+
+builder.Logging.AddFilter("System.Net.Http.HttpClient.*.LogicalHandler", LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http.HttpClient.*.ClientHandler", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.*", LogLevel.Warning);
 
 // Add services to the container.
 
@@ -82,7 +100,17 @@ builder.Services.AddHangfire(
     configuration =>
     {
         configuration
-            .UseMemoryStorage() // TODO: Change to external storage
+            // .UsePostgreSqlStorage(
+            //     conf => { conf.UseNpgsqlConnection(builder.Configuration["Database:ConnectionString"]); },
+            //     new PostgreSqlStorageOptions()
+            //     {
+            //         InvisibilityTimeout = TimeSpan.FromDays(1),
+            //     })
+            .UseMemoryStorage(
+                new MemoryStorageOptions() // TODO: Change to external storage
+                {
+                    FetchNextJobTimeout = TimeSpan.FromDays(1)
+                })
             .UseSerilogLogProvider();
     });
 builder.Services.AddHangfireServer();
@@ -141,7 +169,8 @@ builder.Services.AddScoped<IPersonalBestsYearlyRepository, PersonalBestsYearlyRe
 builder.Services.AddScoped<IRecordsRepository, RecordsRepository>();
 builder.Services.AddScoped<IRecordsService, RecordsService>();
 
-builder.Services.AddScoped<IRemoteStorageService, RemoteStorageService>();
+// builder.Services.AddScoped<IRemoteStorageService, GoogleCloudStorageService>();
+builder.Services.AddScoped<IRemoteStorageService, WasabiStorageService>();
 
 builder.Services.AddScoped<ISteamService, SteamService>();
 builder.Services.AddScoped<ISteamWebInterfaceFactory, SteamWebInterfaceFactory>(
@@ -175,8 +204,9 @@ builder.Services.AddTransient<UploadMediaJob>();
 
 builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection(AuthenticationOptions.Key));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.Key));
-builder.Services.Configure<RemoteStorageOptions>(builder.Configuration.GetSection(RemoteStorageOptions.Key));
+builder.Services.Configure<GoogleCloudStorageOptions>(builder.Configuration.GetSection(GoogleCloudStorageOptions.Key));
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection(SteamOptions.Key));
+builder.Services.Configure<WasabiStorageOptions>(builder.Configuration.GetSection(WasabiStorageOptions.Key));
 builder.Services.Configure<WorkshopOptions>(builder.Configuration.GetSection(WorkshopOptions.Key));
 
 builder.Services.AddRefitClient<IPublishedFileServiceApi>(
