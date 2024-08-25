@@ -1,10 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
-using ByteSizeLib;
 using Docker.DotNet;
 using Hangfire;
 using Hangfire.MemoryStorage;
-using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +10,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Refit;
 using Serilog;
-using Serilog.Enrichers.ShortTypeName;
 using Serilog.Events;
 using Serilog.Filters;
 using SteamWebAPI2.Utilities;
@@ -56,9 +53,10 @@ builder.Host.UseSerilog(
             .Enrich.FromLogContext()
             .WriteTo.OpenObserve(
                 options.Url,
-                options.Organization,
+                "default",
                 options.Login,
-                options.Token)
+                options.Token,
+                streamName: options.Stream)
             .WriteTo.Console(
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {SourceContext}] {Message:lj}{NewLine}{Exception}",
                 restrictedToMinimumLevel: LogEventLevel.Information)
