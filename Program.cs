@@ -84,8 +84,8 @@ builder.Services.AddAuthentication(
         {
             x.TokenValidationParameters = new TokenValidationParameters()
             {
-                ValidIssuer = "https://api.zeepkist-gtr.com",
-                ValidAudience = "https://api.zeepkist-gtr.com",
+                ValidIssuer = "https://backend.zeepkist-gtr.com",
+                ValidAudience = "https://backend.zeepkist-gtr.com",
                 IssuerSigningKey = new SymmetricSecurityKey(
                     Encoding.UTF8.GetBytes(builder.Configuration.GetSection(JwtOptions.Key)[nameof(JwtOptions.Token)])),
                 ValidateIssuer = true,
