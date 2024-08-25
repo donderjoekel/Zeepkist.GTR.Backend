@@ -243,8 +243,6 @@ app.UseCors(
         .AllowAnyMethod()
         .AllowAnyHeader());
 
-app.UseHttpsRedirection();
-
 app.UseHangfireDashboard();
 
 app.UseAuthentication();
