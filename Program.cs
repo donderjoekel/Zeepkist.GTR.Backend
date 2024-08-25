@@ -80,12 +80,17 @@ builder.Services.AddAuthentication(
     .AddJwtBearer(
         x =>
         {
+            JwtOptions? jwtOptions = builder.Configuration.GetSection(JwtOptions.Key).Get<JwtOptions>();
+            if (jwtOptions == null)
+            {
+                throw new InvalidOperationException("JwtOptions is null");
+            }
+
             x.TokenValidationParameters = new TokenValidationParameters()
             {
-                ValidIssuer = "https://backend.zeepkist-gtr.com",
-                ValidAudience = "https://backend.zeepkist-gtr.com",
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(builder.Configuration.GetSection(JwtOptions.Key)[nameof(JwtOptions.Token)])),
+                ValidIssuer = jwtOptions.Issuer,
+                ValidAudience = jwtOptions.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Token)),
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
