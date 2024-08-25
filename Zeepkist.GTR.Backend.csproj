@@ -42,10 +42,6 @@
         <PackageReference Include="Serilog.Sinks.Seq" Version="7.0.1"/>
         <PackageReference Include="SteamWebAPI2" Version="4.4.1"/>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
-        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="5.0.1"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\Zeepkist.GTR.Database\Zeepkist.GTR.Database.csproj"/>
+        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="5.1.1"/>
     </ItemGroup>
 </Project>
