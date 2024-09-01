@@ -10,7 +10,7 @@ public class FixWorldRecordsJob
     private readonly IRecordsService _recordsService;
     private readonly IServiceProvider _provider;
     private readonly ILogger<FixWorldRecordsJob> _logger;
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(50, 50);
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(25, 25);
     private int counter;
     private int total;
 
@@ -59,8 +59,9 @@ public class FixWorldRecordsJob
             List<Record> records = group.OrderBy(x => x.DateCreated).ToList();
 
             _logger.LogInformation("Fixing world records for level {LevelId}", levelId);
-            foreach (Record record in records)
+            for (int i = 0; i < records.Count; i++)
             {
+                Record record = records[i];
                 worldRecordsService.UpdateDailyWorldRecord(record, levelId);
                 worldRecordsService.UpdateWeeklyWorldRecord(record, levelId);
                 worldRecordsService.UpdateMonthlyWorldRecord(record, levelId);

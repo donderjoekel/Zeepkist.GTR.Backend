@@ -159,7 +159,10 @@ public class WorldRecordsService : IWorldRecordsService
 
         WorldRecordQuarterly? existing
             = _quarterlyRepository.GetSingle(
-                x => x.IdLevel == levelId && x.Year == year && x.Quarter == quarter,
+                x =>
+                    x.IdLevel == levelId &&
+                    x.Year == year &&
+                    x.Quarter == quarter,
                 set => set.Include(x => x.Record));
 
         if (existing == null)
