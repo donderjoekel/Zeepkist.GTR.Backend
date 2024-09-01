@@ -15,33 +15,33 @@
         <PackageReference Include="ByteSize" Version="2.1.2"/>
         <PackageReference Include="CliWrap" Version="3.6.6"/>
         <PackageReference Include="Docker.DotNet" Version="3.125.15"/>
-        <PackageReference Include="FluentResults" Version="3.15.2"/>
-        <PackageReference Include="FluentStorage.AWS" Version="5.3.1"/>
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3416"/>
+        <PackageReference Include="FluentResults" Version="3.16.0" />
+        <PackageReference Include="FluentStorage.AWS" Version="5.4.0" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3508" />
         <PackageReference Include="Google.Cloud.Storage.V1" Version="4.10.0"/>
-        <PackageReference Include="Hangfire.AspNetCore" Version="1.8.12"/>
+        <PackageReference Include="Hangfire.AspNetCore" Version="1.8.14" />
         <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.1.1"/>
         <PackageReference Include="Hangfire.PostgreSql" Version="1.20.9"/>
-        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0"/>
+        <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
         <PackageReference Include="LinqKit.Microsoft.EntityFrameworkCore" Version="8.1.5"/>
         <PackageReference Include="MathNet.Numerics" Version="5.0.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.5"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.5"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.5"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.8" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0"/>
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4"/>
         <PackageReference Include="RabbitMQ.Client" Version="6.8.1"/>
-        <PackageReference Include="Refit" Version="7.0.0"/>
-        <PackageReference Include="Refit.HttpClientFactory" Version="7.0.0"/>
-        <PackageReference Include="Refit.Newtonsoft.Json" Version="7.0.0"/>
+        <PackageReference Include="Refit" Version="7.1.2" />
+        <PackageReference Include="Refit.HttpClientFactory" Version="7.1.2" />
+        <PackageReference Include="Refit.Newtonsoft.Json" Version="7.1.2" />
         <PackageReference Include="Semver" Version="2.3.0"/>
-        <PackageReference Include="Serilog.AspNetCore" Version="8.0.1"/>
+        <PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
         <PackageReference Include="Serilog.Enrichers.ShortTypeName" Version="1.1.0"/>
         <PackageReference Include="Serilog.Sinks.OpenObserve-KKP" Version="1.0.4"/>
-        <PackageReference Include="Serilog.Sinks.Seq" Version="7.0.1"/>
+        <PackageReference Include="Serilog.Sinks.Seq" Version="8.0.0" />
         <PackageReference Include="SteamWebAPI2" Version="4.4.1"/>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
-        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="5.1.1"/>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
+        <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="5.1.2" />
     </ItemGroup>
 </Project>
