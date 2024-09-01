@@ -24,7 +24,9 @@ public interface IBasicRepository<TModel>
     TModel? GetSingle(Expression<Func<TModel, bool>> predicate, Func<DbSet<TModel>, IQueryable<TModel>> set);
     TModel Insert(TModel model);
     TModel Insert(TModel model, DateTimeOffset dateCreated);
+    void InsertRange(IEnumerable<TModel> models);
     TModel Update(TModel model);
+    void UpdateRange(IEnumerable<TModel> models);
 
     TModel Upsert(
         int id,
@@ -125,6 +127,18 @@ public abstract class BasicRepository<TModel> : IBasicRepository<TModel>
         return entry.Entity;
     }
 
+    public void InsertRange(IEnumerable<TModel> models)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        foreach (TModel entity in models)
+        {
+            entity.DateCreated = now;
+        }
+
+        _set.AddRange(models);
+        _database.SaveChanges();
+    }
+
     public TModel Update(TModel model)
     {
         model.DateUpdated = DateTimeOffset.UtcNow;
@@ -133,6 +147,17 @@ public abstract class BasicRepository<TModel> : IBasicRepository<TModel>
         _database.SaveChanges();
         entry.State = EntityState.Detached;
         return entry.Entity;
+    }
+
+    public void UpdateRange(IEnumerable<TModel> models)
+    {
+        foreach (TModel model in models)
+        {
+            model.DateUpdated = DateTimeOffset.UtcNow;
+        }
+
+        _set.UpdateRange(models);
+        _database.SaveChanges();
     }
 
     public TModel Upsert(
