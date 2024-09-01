@@ -251,7 +251,7 @@ app.UseHangfireDashboard(
     options: new DashboardOptions()
     {
         Authorization = [new HangfireAuthorization()],
-        IsReadOnlyFunc = _ => false
+        IsReadOnlyFunc = _ => true
     });
 
 app.UseAuthentication();
