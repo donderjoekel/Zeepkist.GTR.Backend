@@ -10,6 +10,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Levels.Items;
 
 public interface ILevelItemsService
 {
+    IEnumerable<LevelItem> GetAll();
     bool ExistsForLevel(int levelId);
     bool Exists(PublishedFileDetails publishedFileDetails, ZeepLevel zeepLevel, string hash);
 
@@ -37,6 +38,11 @@ public class LevelItemsService : ILevelItemsService
         _levelService = levelService;
         _logger = logger;
         _remoteStorageService = remoteStorageService;
+    }
+
+    public IEnumerable<LevelItem> GetAll()
+    {
+        return _repository.GetAll();
     }
 
     public bool ExistsForLevel(int levelId)

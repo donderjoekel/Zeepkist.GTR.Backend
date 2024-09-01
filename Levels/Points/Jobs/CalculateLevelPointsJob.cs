@@ -32,24 +32,57 @@ public class CalculateLevelPointsJob
     {
         _logger.LogInformation("Calculating level points");
 
-        List<int> levelIds = new();
+        List<int> levelIds = _levelService.GetAllIds().ToList();
+        List<LevelItem> levelItems = _levelItemsService.GetAll().ToList();
+        List<PersonalBestGlobal> allPersonalBests = _personalBestsService.GetAll().ToList();
 
-        foreach (int levelId in _levelService.GetAllIds())
-        {
-            if (_levelItemsService.ExistsForLevel(levelId))
-                levelIds.Add(levelId);
-        }
+        Dictionary<int, LevelPoints> existingLevelPoints = _levelPointsService.GetAll()
+            .ToDictionary(x => x.IdLevel, x => x);
+        List<LevelPoints> newLevelPoints = new();
 
         foreach (int levelId in levelIds)
         {
-            IEnumerable<PersonalBestGlobal> personalBests = _personalBestsService.GetForLevel(levelId);
-            int levelPoints = personalBests.Count();
-            if (levelPoints < 8)
-                levelPoints = 0;
+            int points = allPersonalBests.Count(x => x.IdLevel == levelId);
+            if (points < 8)
+                points = 0;
 
-            _levelPointsService.Update(levelId, levelPoints);
-            _logger.LogInformation("Updated level {LevelId} with {LevelPoints} points", levelId, levelPoints);
+            if (levelItems.All(x => x.IdLevel != levelId))
+                points = 0;
+
+            if (existingLevelPoints.TryGetValue(levelId, out LevelPoints? levelPoints))
+            {
+                levelPoints.Points = points;
+            }
+            else
+            {
+                newLevelPoints.Add(
+                    new LevelPoints
+                    {
+                        IdLevel = levelId,
+                        Points = points
+                    });
+            }
+
+            _logger.LogInformation("Updated level {LevelId} with {Points} points", levelId, points);
         }
+
+        if (newLevelPoints.Count > 0)
+            _levelPointsService.AddRange(newLevelPoints);
+        if (existingLevelPoints.Count > 0)
+            _levelPointsService.UpdateRange(existingLevelPoints.Values);
+
+        // foreach (int levelId in levelIds)
+        // {
+        //     int levelPoints = allPersonalBests.Count(x => x.IdLevel == levelId);
+        //     if (levelPoints < 8)
+        //         levelPoints = 0;
+        //
+        //     if (levelItems.All(x => x.IdLevel != levelId))
+        //         levelPoints = 0;
+        //
+        //     _levelPointsService.Update(levelId, levelPoints);
+        //     _logger.LogInformation("Updated level {LevelId} with {LevelPoints} points", levelId, levelPoints);
+        // }
 
         _logger.LogInformation("Finished calculating level points");
         return Task.CompletedTask;

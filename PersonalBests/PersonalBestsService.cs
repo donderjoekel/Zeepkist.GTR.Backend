@@ -6,6 +6,7 @@ namespace TNRD.Zeepkist.GTR.Backend.PersonalBests;
 
 public interface IPersonalBestsService
 {
+    IEnumerable<PersonalBestGlobal> GetAll();
     IEnumerable<PersonalBestGlobal> GetAllIncludingRecord();
     IEnumerable<PersonalBestGlobal> GetForLevel(int levelId);
     void UpdateDaily(Record record, int userId, int levelId);
@@ -39,6 +40,11 @@ public class PersonalBestsService : IPersonalBestsService
         _quarterlyRepository = quarterlyRepository;
         _weeklyRepository = weeklyRepository;
         _yearlyRepository = yearlyRepository;
+    }
+
+    public IEnumerable<PersonalBestGlobal> GetAll()
+    {
+        return _globalRepository.GetAll();
     }
 
     public IEnumerable<PersonalBestGlobal> GetAllIncludingRecord()

@@ -44,8 +44,7 @@ public class CalculateUserPointsJob
     {
         int totalUsers = _userService.Count();
 
-        IEnumerable<User> users = _userService.GetAll();
-
+        List<User> users = _userService.GetAll().ToList();
         List<IGrouping<int, WorldRecordGlobal>> worldRecordGroups = [];
 
         foreach (User user in users)
@@ -80,6 +79,10 @@ public class CalculateUserPointsJob
             }
         }
 
+        Dictionary<int, UserPoints> existingUserPoints = _userPointsService.GetAll()
+            .ToDictionary(x => x.IdUser, x => x);
+        List<UserPoints> newUserPoints = new();
+
         List<KeyValuePair<int, int>> orderedPoints = pointsPerUser.OrderByDescending(x => x.Value).ToList();
         for (int i = 0; i < orderedPoints.Count; i++)
         {
@@ -93,12 +96,29 @@ public class CalculateUserPointsJob
                 newRank,
                 worldRecordCountPerUser.GetValueOrDefault(kvp.Key, 0));
 
-            _userPointsService.Update(
-                kvp.Key,
-                kvp.Value,
-                newRank,
-                worldRecordCountPerUser.GetValueOrDefault(kvp.Key, 0));
+            if (existingUserPoints.TryGetValue(kvp.Key, out UserPoints? userPoints))
+            {
+                userPoints.Points = kvp.Value;
+                userPoints.Rank = newRank;
+                userPoints.WorldRecords = worldRecordCountPerUser.GetValueOrDefault(kvp.Key, 0);
+            }
+            else
+            {
+                newUserPoints.Add(
+                    new UserPoints
+                    {
+                        IdUser = kvp.Key,
+                        Points = kvp.Value,
+                        Rank = newRank,
+                        WorldRecords = worldRecordCountPerUser.GetValueOrDefault(kvp.Key, 0)
+                    });
+            }
         }
+
+        if (newUserPoints.Count > 0)
+            _userPointsService.AddRange(newUserPoints);
+        if (existingUserPoints.Count > 0)
+            _userPointsService.UpdateRange(existingUserPoints.Values);
 
         return Task.CompletedTask;
     }
