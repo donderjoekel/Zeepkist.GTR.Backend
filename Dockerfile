@@ -7,7 +7,7 @@ EXPOSE 443
 RUN apt-get update && apt-get install -y curl
 
 RUN apt-get install -y lib32gcc-s1
-RUN cd /usr/local/lib && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+RUN cd /usr/local/bin && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
