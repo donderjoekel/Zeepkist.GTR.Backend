@@ -38,13 +38,19 @@ public class JobScheduler : IJobScheduler
 
     public void ScheduleRecurringJobs()
     {
-        // ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
-        // ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
-
+#if DEBUG
+        ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
+        ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
         ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Never());
-        ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Hourly());
-        ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Daily());
-        ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Daily(1));
+        ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Never());
+        ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
+        ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Never());
+#else
+        ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Never());
+        ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Never());
+        ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
+        ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Hourly());
+#endif
     }
 
     private void ScheduleRecurringJob<TJob>(string cronExpression)
