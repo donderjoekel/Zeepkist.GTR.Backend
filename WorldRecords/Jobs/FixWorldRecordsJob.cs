@@ -11,6 +11,8 @@ public class FixWorldRecordsJob
     private readonly IServiceProvider _provider;
     private readonly ILogger<FixWorldRecordsJob> _logger;
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(50, 50);
+    private int counter;
+    private int total;
 
     public FixWorldRecordsJob(
         IRecordsService recordsService,
@@ -34,6 +36,8 @@ public class FixWorldRecordsJob
         _logger.LogInformation("Fixing world records ({Count})", groupedRecords.Count);
         List<Task> tasks = new();
 
+        counter = 0;
+        total = groupedRecords.Count;
         foreach (IGrouping<int, Record> group in groupedRecords)
         {
             tasks.Add(Task.Run(() => FixWorldRecords(group)));
@@ -65,7 +69,12 @@ public class FixWorldRecordsJob
                 worldRecordsService.UpdateGlobalWorldRecord(record, levelId);
             }
 
-            _logger.LogInformation("Finished fixing world records for level {LevelId}", levelId);
+            Interlocked.Increment(ref counter);
+            _logger.LogInformation(
+                "Finished fixing world records for level {LevelId} ({Counter}/{Total})",
+                levelId,
+                counter,
+                total);
         }
         catch (Exception e)
         {

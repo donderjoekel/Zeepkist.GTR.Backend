@@ -12,6 +12,8 @@ public class FixPersonalBestsJob
     private readonly IServiceProvider _provider;
     private readonly ILogger<FixWorldRecordsJob> _logger;
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(50, 50);
+    private int counter;
+    private int total;
 
     public FixPersonalBestsJob(
         IRecordsService recordsService,
@@ -35,16 +37,17 @@ public class FixPersonalBestsJob
         _logger.LogInformation("Fixing personal bests ({Count})", groupedRecords.Count);
         List<Task> tasks = new();
 
+        total = groupedRecords.Count;
         foreach (IGrouping<int, Record> group in groupedRecords)
         {
-            tasks.Add(Task.Run(() => FixWorldRecords(group)));
+            tasks.Add(Task.Run(() => FixPersonalBests(group)));
         }
 
         await Task.WhenAll(tasks);
         _logger.LogInformation("Finished fixing personal bests");
     }
 
-    private async Task FixWorldRecords(IGrouping<int, Record> group)
+    private async Task FixPersonalBests(IGrouping<int, Record> group)
     {
         await _semaphore.WaitAsync();
         IServiceScope scope = _provider.CreateScope();
@@ -61,8 +64,9 @@ public class FixPersonalBestsJob
                 .GroupBy(x => x.IdLevel)
                 .ToList();
 
-            foreach (IGrouping<int, Record> levelGroup in levelGroups)
+            for (int i = 0; i < levelGroups.Count; i++)
             {
+                IGrouping<int, Record> levelGroup = levelGroups[i];
                 int levelId = levelGroup.Key;
                 List<Record> records = levelGroup.OrderBy(x => x.DateCreated).ToList();
 
@@ -77,7 +81,12 @@ public class FixPersonalBestsJob
                 }
             }
 
-            _logger.LogInformation("Finished fixing personal bests for user {User}", userId);
+            Interlocked.Increment(ref counter);
+            _logger.LogInformation(
+                "Finished fixing personal bests for user {User} ({Counter}/{Total})",
+                userId,
+                counter,
+                total);
         }
         catch (Exception e)
         {
