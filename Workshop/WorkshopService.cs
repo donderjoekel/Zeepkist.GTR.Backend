@@ -124,7 +124,7 @@ public class WorkshopService : IWorkshopService
 
     private Task<CommandResult> RunProcess(string guid, IEnumerable<string> parameters)
     {
-        return Cli.Wrap("steamcmd")
+        return Cli.Wrap(_options.SteamCmdPath)
             .WithArguments(parameters)
             .WithStandardOutputPipe(PipeTarget.ToDelegate(p => _logger.LogInformation("{Output}", p)))
             .ExecuteAsync();
