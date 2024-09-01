@@ -41,7 +41,7 @@ public class JobScheduler : IJobScheduler
         // ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
         // ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
 
-        ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Monthly());
+        ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Never());
         ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Hourly());
         ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Daily());
         ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Daily(1));
