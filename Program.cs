@@ -23,6 +23,7 @@ using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Jwt;
 using TNRD.Zeepkist.GTR.Backend.Levels;
 using TNRD.Zeepkist.GTR.Backend.Levels.Items;
+using TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Levels.Metadata;
 using TNRD.Zeepkist.GTR.Backend.Levels.Points;
 using TNRD.Zeepkist.GTR.Backend.Levels.Requests;
@@ -206,6 +207,11 @@ builder.Services.AddScoped<IWorldRecordsMonthlyRepository, WorldRecordsMonthlyRe
 builder.Services.AddScoped<IWorldRecordsQuarterlyRepository, WorldRecordsQuarterlyRepository>();
 builder.Services.AddScoped<IWorldRecordsWeeklyRepository, WorldRecordsWeeklyRepository>();
 builder.Services.AddScoped<IWorldRecordsYearlyRepository, WorldRecordsYearlyRepository>();
+
+builder.Services.AddScoped<WorkshopLister>();
+builder.Services.AddScoped<WorkshopDownloader>();
+builder.Services.AddScoped<WorkshopProcessor>();
+builder.Services.AddScoped<WorkshopProcessor.WorkshopProcess>();
 
 builder.Services.AddTransient<UploadMediaJob>();
 

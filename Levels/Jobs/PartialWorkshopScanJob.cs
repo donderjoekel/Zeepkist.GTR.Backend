@@ -1,77 +1,44 @@
 ﻿using JetBrains.Annotations;
-using Microsoft.Extensions.Options;
-using TNRD.Zeepkist.GTR.Backend.Hashing;
-using TNRD.Zeepkist.GTR.Backend.Levels.Items;
-using TNRD.Zeepkist.GTR.Backend.Levels.Metadata;
-using TNRD.Zeepkist.GTR.Backend.Steam;
-using TNRD.Zeepkist.GTR.Backend.Steam.Resources;
 using TNRD.Zeepkist.GTR.Backend.Workshop;
-using TNRD.Zeepkist.GTR.Backend.Zeeplevel;
 
 namespace TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 
 public class PartialWorkshopScanJob : WorkshopScanJob
 {
-    private readonly IPublishedFileServiceApi _publishedFileServiceApi;
-    private readonly SteamOptions _steamOptions;
-
     public PartialWorkshopScanJob(
         ILogger<PartialWorkshopScanJob> logger,
-        IHashService hashService,
-        ILevelService levelService,
-        ILevelMetadataService levelMetadataService,
-        ILevelItemsService levelItemsService,
-        IWorkshopService workshopService,
-        IZeeplevelService zeeplevelService,
-        IPublishedFileServiceApi publishedFileServiceApi,
-        IOptions<SteamOptions> steamOptions)
-        : base(
-            logger,
-            hashService,
-            levelService,
-            levelMetadataService,
-            levelItemsService,
-            workshopService,
-            zeeplevelService)
+        WorkshopLister workshopLister,
+        WorkshopDownloader workshopDownloader,
+        WorkshopProcessor workshopProcessor,
+        IWorkshopService workshopService)
+        : base(logger, workshopLister, workshopDownloader, workshopProcessor, workshopService)
     {
-        _publishedFileServiceApi = publishedFileServiceApi;
-        _steamOptions = steamOptions.Value;
     }
 
     [UsedImplicitly]
     public async Task ExecuteAsync()
     {
+        if (FullWorkshopScanJob.IsRunning)
+        {
+            Logger.LogInformation("Skipping partial workshop scan because full workshop scan is running");
+            return;
+        }
+
         await ScanByPublicationDate();
         await ScanByUpdatedDate();
     }
 
     private async Task ScanByPublicationDate()
     {
-        string cursor = "*";
-
-        for (int i = 0; i < 5; i++)
-        {
-            QueryFilesResult result
-                = await _publishedFileServiceApi.QueryFilesByPublicationDate(_steamOptions.ApiKey, cursor);
-
-            cursor = result.Response.NextCursor;
-
-            await ProcessPage(result);
-        }
+        Logger.LogInformation("Starting partial workshop scan by publication date");
+        await Run(WorkshopLister.QueryType.ByPublicationDate, 5);
+        Logger.LogInformation("Finished partial workshop scan by publication date");
     }
-
+    
     private async Task ScanByUpdatedDate()
     {
-        string cursor = "*";
-
-        for (int i = 0; i < 5; i++)
-        {
-            QueryFilesResult result
-                = await _publishedFileServiceApi.QueryFilesByUpdatedDate(_steamOptions.ApiKey, cursor);
-
-            cursor = result.Response.NextCursor;
-
-            await ProcessPage(result);
-        }
+        Logger.LogInformation("Starting partial workshop scan by updated date");
+        await Run(WorkshopLister.QueryType.ByUpdatedDate, 5);
+        Logger.LogInformation("Finished partial workshop scan by updated date");
     }
 }

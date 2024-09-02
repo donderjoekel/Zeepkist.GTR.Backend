@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 using TNRD.Zeepkist.GTR.Backend.Zeeplevel.Resources;
 
 namespace TNRD.Zeepkist.GTR.Backend.Zeeplevel;
@@ -12,6 +13,7 @@ public interface IZeeplevelService
 public class ZeeplevelService : IZeeplevelService
 {
     private readonly ILogger<ZeeplevelService> _logger;
+    private readonly CultureInfo _culture = new("en-US");
 
     public ZeeplevelService(ILogger<ZeeplevelService> logger)
     {
@@ -76,18 +78,18 @@ public class ZeeplevelService : IZeeplevelService
                 return false;
 
             level.CameraPosition = new Vector3(
-                float.Parse(splits[0]),
-                float.Parse(splits[1]),
-                float.Parse(splits[2]));
+                float.Parse(splits[0], NumberStyles.Any, _culture),
+                float.Parse(splits[1], NumberStyles.Any, _culture),
+                float.Parse(splits[2], NumberStyles.Any, _culture));
 
             level.CameraEuler = new Vector3(
-                float.Parse(splits[3]),
-                float.Parse(splits[4]),
-                float.Parse(splits[5]));
+                float.Parse(splits[3], NumberStyles.Any, _culture),
+                float.Parse(splits[4], NumberStyles.Any, _culture),
+                float.Parse(splits[5], NumberStyles.Any, _culture));
 
             level.CameraRotation = new Vector2(
-                float.Parse(splits[6]),
-                float.Parse(splits[7]));
+                float.Parse(splits[6], NumberStyles.Any, _culture),
+                float.Parse(splits[7], NumberStyles.Any, _culture));
 
             return true;
         }
@@ -117,12 +119,12 @@ public class ZeeplevelService : IZeeplevelService
                 level.IsValidated = false;
             }
 
-            level.GoldTime = float.Parse(splits[1]);
-            level.SilverTime = float.Parse(splits[2]);
-            level.BronzeTime = float.Parse(splits[3]);
+            level.GoldTime = float.Parse(splits[1], NumberStyles.Any, _culture);
+            level.SilverTime = float.Parse(splits[2], NumberStyles.Any, _culture);
+            level.BronzeTime = float.Parse(splits[3], NumberStyles.Any, _culture);
 
-            level.Skybox = int.Parse(splits[4]);
-            level.Ground = int.Parse(splits[5]);
+            level.Skybox = int.Parse(splits[4], NumberStyles.Any, _culture);
+            level.Ground = int.Parse(splits[5], NumberStyles.Any, _culture);
 
             return true;
         }
@@ -139,6 +141,9 @@ public class ZeeplevelService : IZeeplevelService
 
         foreach (string line in lines)
         {
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
             try
             {
                 string[] splits = line.Split(',');
@@ -147,26 +152,26 @@ public class ZeeplevelService : IZeeplevelService
 
                 ZeepBlock block = new();
 
-                block.Id = int.Parse(splits[0]);
+                block.Id = int.Parse(splits[0], NumberStyles.Any, _culture);
 
                 block.Position = new Vector3(
-                    float.Parse(splits[1]),
-                    float.Parse(splits[2]),
-                    float.Parse(splits[3]));
+                    float.Parse(splits[1], NumberStyles.Any, _culture),
+                    float.Parse(splits[2], NumberStyles.Any, _culture),
+                    float.Parse(splits[3], NumberStyles.Any, _culture));
 
                 block.Euler = new Vector3(
-                    float.Parse(splits[4]),
-                    float.Parse(splits[5]),
-                    float.Parse(splits[6]));
+                    float.Parse(splits[4], NumberStyles.Any, _culture),
+                    float.Parse(splits[5], NumberStyles.Any, _culture),
+                    float.Parse(splits[6], NumberStyles.Any, _culture));
 
                 block.Scale = new Vector3(
-                    float.Parse(splits[7]),
-                    float.Parse(splits[8]),
-                    float.Parse(splits[9]));
+                    float.Parse(splits[7], NumberStyles.Any, _culture),
+                    float.Parse(splits[8], NumberStyles.Any, _culture),
+                    float.Parse(splits[9], NumberStyles.Any, _culture));
 
-                splits[10..27].ToList().ForEach(x => block.Paints.Add(int.Parse(x)));
+                splits[10..27].ToList().ForEach(x => block.Paints.Add(int.Parse(x, NumberStyles.Any, _culture)));
 
-                splits[27..38].ToList().ForEach(x => block.Options.Add(float.Parse(x)));
+                splits[27..38].ToList().ForEach(x => block.Options.Add(float.Parse(x, NumberStyles.Any, _culture)));
 
                 blocks.Add(block);
             }

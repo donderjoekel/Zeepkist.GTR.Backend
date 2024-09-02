@@ -33,4 +33,9 @@ public interface IPublishedFileServiceApi
         [AliasAs("appid")] uint appId = 1440670,
         [AliasAs("return_metadata")] bool returnMetadata = true,
         [AliasAs("return_details")] bool returnDetails = true);
+
+    [Get("/GetDetails/v1/")]
+    Task<QueryFilesResult> GetDetails(
+        string key,
+        [AliasAs("publishedfileids[0]")] decimal publishedFileId);
 }

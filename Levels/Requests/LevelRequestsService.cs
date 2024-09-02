@@ -4,6 +4,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Levels.Requests;
 
 public interface ILevelRequestsService
 {
+    void Add(ulong workshopId);
     IEnumerable<LevelRequest> GetRequests();
     void Delete(LevelRequest request);
 }
@@ -15,6 +16,18 @@ public class LevelRequestsService : ILevelRequestsService
     public LevelRequestsService(ILevelRequestsRepository repository)
     {
         _repository = repository;
+    }
+
+    public void Add(ulong workshopId)
+    {
+        LevelRequest? existing = _repository.GetSingle(x => x.WorkshopId == workshopId);
+        if (existing == null)
+        {
+            _repository.Insert(new LevelRequest()
+            {
+                WorkshopId = workshopId
+            });
+        }
     }
 
     public IEnumerable<LevelRequest> GetRequests()

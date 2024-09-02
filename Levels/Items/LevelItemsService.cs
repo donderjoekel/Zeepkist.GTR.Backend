@@ -11,6 +11,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Levels.Items;
 public interface ILevelItemsService
 {
     IEnumerable<LevelItem> GetAll();
+    IEnumerable<LevelItem> GetForPublishedFileDetails(PublishedFileDetails publishedFileDetails);
     bool ExistsForLevel(int levelId);
     bool Exists(PublishedFileDetails publishedFileDetails, ZeepLevel zeepLevel, string hash);
 
@@ -19,6 +20,8 @@ public interface ILevelItemsService
         WorkshopLevel workshopLevel,
         ZeepLevel zeepLevel,
         Level level);
+
+    void MarkDeleted(LevelItem levelItem);
 }
 
 public class LevelItemsService : ILevelItemsService
@@ -43,6 +46,16 @@ public class LevelItemsService : ILevelItemsService
     public IEnumerable<LevelItem> GetAll()
     {
         return _repository.GetAll();
+    }
+
+    public IEnumerable<LevelItem> GetForPublishedFileDetails(PublishedFileDetails publishedFileDetails)
+    {
+        if (ulong.TryParse(publishedFileDetails.PublishedFileId, out ulong publishedFileId))
+        {
+            return _repository.GetAll(item => item.Deleted == false && item.WorkshopId == publishedFileId);
+        }
+
+        return Enumerable.Empty<LevelItem>();
     }
 
     public bool ExistsForLevel(int levelId)
@@ -127,5 +140,11 @@ public class LevelItemsService : ILevelItemsService
         };
 
         _repository.Insert(item);
+    }
+
+    public void MarkDeleted(LevelItem levelItem)
+    {
+        levelItem.Deleted = true;
+        _repository.Update(levelItem);
     }
 }

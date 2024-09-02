@@ -1,9 +1,12 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 
 namespace TNRD.Zeepkist.GTR.Backend.Zeeplevel.Resources;
 
 public class ZeepBlock
 {
+    private static readonly CultureInfo Culture = new CultureInfo("en-US");
+
     public ZeepBlock()
     {
         Paints = new List<int>();
@@ -20,6 +23,6 @@ public class ZeepBlock
     public override string ToString()
     {
         return
-            $"Id: {Id}, Position: {Position}, Euler: {Euler}, Scale: {Scale}, Paints: {string.Join(", ", Paints)}, Options: {string.Join(", ", Options)}";
+            $"Id: {Id.ToString(Culture)}, Position: {Position.ToString(string.Empty, Culture)}, Euler: {Euler.ToString(string.Empty, Culture)}, Scale: {Scale.ToString(string.Empty, Culture)}, Paints: {string.Join(", ", Paints.Select(x => x.ToString(Culture)))}, Options: {string.Join(", ", Options.Select(x => x.ToString(Culture)))}";
     }
 }

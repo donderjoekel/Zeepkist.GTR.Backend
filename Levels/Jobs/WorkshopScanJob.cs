@@ -1,122 +1,59 @@
 ﻿using FluentResults;
-using TNRD.Zeepkist.GTR.Backend.Hashing;
-using TNRD.Zeepkist.GTR.Backend.Levels.Items;
-using TNRD.Zeepkist.GTR.Backend.Levels.Metadata;
 using TNRD.Zeepkist.GTR.Backend.Steam.Resources;
 using TNRD.Zeepkist.GTR.Backend.Workshop;
-using TNRD.Zeepkist.GTR.Backend.Zeeplevel;
-using TNRD.Zeepkist.GTR.Backend.Zeeplevel.Resources;
-using TNRD.Zeepkist.GTR.Database.Data.Entities;
 
 namespace TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 
 public abstract class WorkshopScanJob
 {
     private readonly ILogger _logger;
-    private readonly IHashService _hashService;
-    private readonly ILevelService _levelService;
-    private readonly ILevelMetadataService _levelMetadataService;
-    private readonly ILevelItemsService _levelItemsService;
+    private readonly WorkshopLister _workshopLister;
+    private readonly WorkshopDownloader _workshopDownloader;
+    private readonly WorkshopProcessor _workshopProcessor;
     private readonly IWorkshopService _workshopService;
-    private readonly IZeeplevelService _zeeplevelService;
+
+    protected WorkshopScanJob(ILogger logger,
+        WorkshopLister workshopLister,
+        WorkshopDownloader workshopDownloader,
+        WorkshopProcessor workshopProcessor,
+        IWorkshopService workshopService)
+    {
+        _logger = logger;
+        _workshopLister = workshopLister;
+        _workshopDownloader = workshopDownloader;
+        _workshopProcessor = workshopProcessor;
+        _workshopService = workshopService;
+    }
 
     public ILogger Logger => _logger;
 
-    protected WorkshopScanJob(
-        ILogger logger,
-        IHashService hashService,
-        ILevelService levelService,
-        ILevelMetadataService levelMetadataService,
-        ILevelItemsService levelItemsService,
-        IWorkshopService workshopService,
-        IZeeplevelService zeeplevelService)
+    protected async Task Run(WorkshopLister.QueryType queryType, int pageLimit = -1)
     {
-        _logger = logger;
-        _hashService = hashService;
-        _levelService = levelService;
-        _levelMetadataService = levelMetadataService;
-        _levelItemsService = levelItemsService;
-        _workshopService = workshopService;
-        _zeeplevelService = zeeplevelService;
-    }
-
-    protected async Task ProcessPage(QueryFilesResult result)
-    {
-        List<ulong> publishedFileIds = result.Response.PublishedFileDetails
-            .Select(x => ulong.Parse(x.PublishedFileId))
-            .ToList();
-
-        Result<WorkshopDownloads> downloadResult = await _workshopService.DownloadWorkshopItems(publishedFileIds);
-
-        if (downloadResult.IsFailed)
+        try
         {
-            _logger.LogWarning("Failed to download workshop items");
-            _workshopService.RemoveAllDownloads();
-            return;
+            Result<List<PublishedFileDetails>> publishedFileResults = await _workshopLister.List(queryType, pageLimit);
+
+            if (publishedFileResults.IsFailed)
+            {
+                _logger.LogWarning("Failed to get published file ids");
+                return;
+            }
+
+            DownloadResult[] downloadResults = await _workshopDownloader.Download(publishedFileResults.Value);
+
+            await _workshopProcessor.Process(downloadResults);
+
+            foreach (DownloadResult downloadResult in downloadResults)
+            {
+                if (downloadResult.Result.IsSuccess)
+                {
+                    _workshopService.RemoveDownloads(downloadResult.Result.Value);
+                }
+            }
         }
-
-        Dictionary<ulong, WorkshopItem> workshopItems = downloadResult.Value.Items.ToDictionary(x => x.PublishedFileId);
-        foreach (PublishedFileDetails publishedFileDetails in result.Response.PublishedFileDetails)
+        catch (Exception e)
         {
-            ProcessPublishedFileDetails(publishedFileDetails, workshopItems);
-        }
-
-        _workshopService.RemoveDownloads(downloadResult.Value);
-    }
-
-    private void ProcessPublishedFileDetails(
-        PublishedFileDetails publishedFileDetails,
-        Dictionary<ulong, WorkshopItem> workshopItems)
-    {
-        ulong publishedFileId = ulong.Parse(publishedFileDetails.PublishedFileId);
-
-        // TODO: get level items based on workshop id and check what needs to be marked as deleted
-
-        if (!workshopItems.TryGetValue(publishedFileId, out WorkshopItem? workshopItem))
-        {
-            _logger.LogWarning(
-                "PublishedFileId ({PublishedFileId}) has not been downloaded from workshop",
-                publishedFileId);
-
-            return;
-        }
-
-        foreach (WorkshopLevel level in workshopItem.Levels)
-        {
-            ProcessWorkshopLevel(publishedFileId, publishedFileDetails, level);
-        }
-    }
-
-    private void ProcessWorkshopLevel(
-        ulong publishedFileId,
-        PublishedFileDetails publishedFileDetails,
-        WorkshopLevel workshopLevel)
-    {
-        ZeepLevel? zeepLevel = _zeeplevelService.Parse(workshopLevel.ZeeplevelPath);
-        if (zeepLevel == null)
-        {
-            _logger.LogWarning(
-                "Unable to parse zeeplevel from workshop item {PublishedFileId}",
-                publishedFileId);
-
-            return;
-        }
-
-        string hash = _hashService.Hash(zeepLevel);
-
-        if (!_levelService.TryGetByHash(hash, out Level? level))
-        {
-            level = _levelService.Create(hash);
-        }
-
-        if (!_levelItemsService.Exists(publishedFileDetails, zeepLevel, hash))
-        {
-            _levelItemsService.Create(publishedFileDetails, workshopLevel, zeepLevel, level);
-        }
-
-        if (!_levelMetadataService.Exists(hash))
-        {
-            _levelMetadataService.Create(zeepLevel, hash);
+            _logger.LogError(e, "Failed to run job");
         }
     }
 }

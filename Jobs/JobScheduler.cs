@@ -4,6 +4,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Levels.Points.Jobs;
+using TNRD.Zeepkist.GTR.Backend.Levels.Requests.Jobs;
 using TNRD.Zeepkist.GTR.Backend.PersonalBests.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Users.Points.Jobs;
 using TNRD.Zeepkist.GTR.Backend.WorldRecords.Jobs;
@@ -41,11 +42,13 @@ public class JobScheduler : IJobScheduler
 #if DEBUG
         ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
         ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
+        ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.Never());
         ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Never());
         ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Never());
         ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
         ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Never());
 #else
+        ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.MinuteInterval(5));
         ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Never());
         ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Never());
         ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());

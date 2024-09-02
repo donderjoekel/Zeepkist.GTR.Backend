@@ -119,7 +119,18 @@ public class WorkshopService : IWorkshopService
 
     public void RemoveAllDownloads()
     {
-        throw new NotImplementedException();
+        string[] directories = Directory.GetDirectories(_options.MountPath, "*", SearchOption.TopDirectoryOnly);
+        foreach (string directory in directories)
+        {
+            try
+            {
+                Directory.Delete(directory, true);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to delete directory: {Directory}", directory);
+            }
+        }
     }
 
     private Task<CommandResult> RunProcess(string guid, IEnumerable<string> parameters)
