@@ -49,8 +49,8 @@ public class JobScheduler : IJobScheduler
         ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Never());
 #else
         ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.MinuteInterval(5));
-        ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Never());
-        ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Never());
+        ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Monthly());
+        ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Hourly());
         ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
         ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Hourly());
 #endif
