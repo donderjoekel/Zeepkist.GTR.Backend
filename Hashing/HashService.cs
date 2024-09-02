@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using TNRD.Zeepkist.GTR.Backend.Comparers;
+using TNRD.Zeepkist.GTR.Backend.Extensions;
 using TNRD.Zeepkist.GTR.Backend.Zeeplevel.Resources;
 
 namespace TNRD.Zeepkist.GTR.Backend.Hashing;
@@ -21,8 +22,8 @@ public class HashService : IHashService
     public string Hash(ZeepLevel zeepLevel)
     {
         StringBuilder inputBuilder = new();
-        inputBuilder.AppendLine(zeepLevel.Skybox.ToString());
-        inputBuilder.AppendLine(zeepLevel.Ground.ToString());
+        inputBuilder.AppendCLRF(zeepLevel.Skybox.ToString());
+        inputBuilder.AppendCLRF(zeepLevel.Ground.ToString());
 
         List<ZeepBlock> orderedBlocks = zeepLevel.Blocks
             .Where(x => x.Id != PresentBlockID)
@@ -36,7 +37,7 @@ public class HashService : IHashService
 
         foreach (ZeepBlock block in orderedBlocks)
         {
-            inputBuilder.AppendLine(block.ToString());
+            inputBuilder.AppendCLRF(block.ToString());
         }
 
         byte[] hash = SHA1.HashData(Encoding.UTF8.GetBytes(inputBuilder.ToString()));
