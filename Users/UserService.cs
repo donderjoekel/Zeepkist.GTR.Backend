@@ -10,6 +10,7 @@ public interface IUserService
     IEnumerable<User> GetAll();
     bool TryGet(int id, [NotNullWhen(true)] out User? user);
     bool TryGet(ulong steamId, [NotNullWhen(true)] out User? user);
+    void UpdateName(ulong steamId, string name);
 }
 
 public class UserService : IUserService
@@ -52,5 +53,17 @@ public class UserService : IUserService
     {
         user = _repository.GetSingle(x => x.SteamId == steamId);
         return user != null;
+    }
+
+    public void UpdateName(ulong steamId, string name)
+    {
+        User? user = _repository.GetSingle(x => x.SteamId == steamId);
+        if (user == null)
+        {
+            return;
+        }
+
+        user.SteamName = name;
+        _repository.Update(user);
     }
 }
