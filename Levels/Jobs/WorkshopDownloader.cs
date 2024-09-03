@@ -7,7 +7,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 public class WorkshopDownloader
 {
     private const int ItemsPerChunk = 10;
-    private const int MaxConcurrency = 25;
+    private const int MaxConcurrency = 5;
 
     private readonly ILogger<WorkshopDownloader> _logger;
     private readonly IWorkshopService _workshopService;
