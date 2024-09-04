@@ -11,7 +11,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 
 public class WorkshopProcessor
 {
-    private const int MaxConcurrency = 2;
+    private const int MaxConcurrency = 10;
 
     private readonly ILogger<WorkshopProcessor> _logger;
     private readonly IServiceProvider _provider;
@@ -37,16 +37,17 @@ public class WorkshopProcessor
                 continue;
             }
 
-            tasks.Add(CreateTask(downloadResult));
+            tasks.Add(CreateTask(semaphore, downloadResult));
         }
 
         await Task.WhenAll(tasks);
     }
 
-    private Task CreateTask(DownloadResult downloadResult)
+    private Task CreateTask(SemaphoreSlim semaphoreSlim, DownloadResult downloadResult)
     {
         return Task.Run(() =>
         {
+            semaphoreSlim.Wait();
             IServiceScope scope = _provider.CreateScope();
 
             try
@@ -67,6 +68,7 @@ public class WorkshopProcessor
             finally
             {
                 scope.Dispose();
+                semaphoreSlim.Release();
             }
         });
     }
