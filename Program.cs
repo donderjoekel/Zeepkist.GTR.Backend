@@ -222,6 +222,7 @@ builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection(SteamO
 builder.Services.Configure<WasabiStorageOptions>(builder.Configuration.GetSection(WasabiStorageOptions.Key));
 builder.Services.Configure<WorkshopOptions>(builder.Configuration.GetSection(WorkshopOptions.Key));
 builder.Services.Configure<LoggerOptions>(builder.Configuration.GetSection(LoggerOptions.Key));
+builder.Services.Configure<JobOptions>(builder.Configuration.GetSection(JobOptions.Key));
 
 builder.Services.AddRefitClient<IPublishedFileServiceApi>(
         provider => new RefitSettings()

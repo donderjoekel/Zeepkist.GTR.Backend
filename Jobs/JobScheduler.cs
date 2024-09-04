@@ -2,6 +2,7 @@
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.Extensions.Options;
 using TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Levels.Points.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Levels.Requests.Jobs;
@@ -21,11 +22,15 @@ public class JobScheduler : IJobScheduler
 {
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IRecurringJobManager _recurringJobManager;
+    private readonly JobOptions _options;
 
-    public JobScheduler(IBackgroundJobClient backgroundJobClient, IRecurringJobManager recurringJobManager)
+    public JobScheduler(IBackgroundJobClient backgroundJobClient,
+        IRecurringJobManager recurringJobManager,
+        IOptions<JobOptions> options)
     {
         _backgroundJobClient = backgroundJobClient;
         _recurringJobManager = recurringJobManager;
+        _options = options.Value;
     }
 
     public void Enqueue<TJob>(params object[] args)
@@ -39,7 +44,7 @@ public class JobScheduler : IJobScheduler
 
     public void ScheduleRecurringJobs()
     {
-#if DEBUG
+#if !DEBUG
         ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
         ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
         ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.Never());
@@ -48,11 +53,17 @@ public class JobScheduler : IJobScheduler
         ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
         ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Never());
 #else
-        ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.MinuteInterval(5));
-        ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Monthly());
-        ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Hourly());
-        ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
-        ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Hourly());
+        if (_options.EnableWorkshop)
+        {
+            ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.MinuteInterval(5));
+            ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Monthly());
+            ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Hourly());
+        }
+        else
+        {
+            ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
+            ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Hourly());
+        }
 #endif
     }
 
