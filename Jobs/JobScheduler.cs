@@ -44,7 +44,7 @@ public class JobScheduler : IJobScheduler
 
     public void ScheduleRecurringJobs()
     {
-#if !DEBUG
+#if DEBUG
         ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
         ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
         ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.Never());
