@@ -11,7 +11,7 @@ namespace TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 
 public class WorkshopProcessor
 {
-    private const int MaxConcurrency = 10;
+    private const int MaxConcurrency = 5;
 
     private readonly ILogger<WorkshopProcessor> _logger;
     private readonly IServiceProvider _provider;
