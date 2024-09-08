@@ -33,4 +33,22 @@ public class UserController : ControllerBase
         _userService.UpdateName(steamId, resource.Name);
         return Ok();
     }
+
+    [HttpPost("update/discord")]
+    public IActionResult UpdateDiscord([FromBody] UpdateDiscordResource resource)
+    {
+        string? value = User.FindFirstValue(IJwtService.SteamIdClaimName);
+        if (string.IsNullOrEmpty(value))
+        {
+            return Unauthorized();
+        }
+
+        if (!ulong.TryParse(value, out ulong steamId))
+        {
+            return Unauthorized();
+        }
+
+        _userService.UpdateDiscord(steamId, resource.Id);
+        return Ok();
+    }
 }

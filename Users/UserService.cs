@@ -11,6 +11,7 @@ public interface IUserService
     bool TryGet(int id, [NotNullWhen(true)] out User? user);
     bool TryGet(ulong steamId, [NotNullWhen(true)] out User? user);
     void UpdateName(ulong steamId, string name);
+    void UpdateDiscord(ulong steamId, decimal id);
 }
 
 public class UserService : IUserService
@@ -64,6 +65,18 @@ public class UserService : IUserService
         }
 
         user.SteamName = name;
+        _repository.Update(user);
+    }
+
+    public void UpdateDiscord(ulong steamId, decimal id)
+    {
+        User? user = _repository.GetSingle(x => x.SteamId == steamId);
+        if (user == null)
+        {
+            return;
+        }
+
+        user.DiscordId = id;
         _repository.Update(user);
     }
 }
