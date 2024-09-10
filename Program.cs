@@ -3,6 +3,7 @@ using System.Text;
 using Docker.DotNet;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -108,17 +109,20 @@ builder.Services.AddHangfire(
     configuration =>
     {
         configuration
-            // .UsePostgreSqlStorage(
-            //     conf => { conf.UseNpgsqlConnection(builder.Configuration["Database:ConnectionString"]); },
-            //     new PostgreSqlStorageOptions()
-            //     {
-            //         InvisibilityTimeout = TimeSpan.FromDays(1),
-            //     })
+#if RELEASE
+            .UsePostgreSqlStorage(
+                conf => { conf.UseNpgsqlConnection(builder.Configuration["Database:ConnectionString"]); },
+                new PostgreSqlStorageOptions()
+                {
+                    InvisibilityTimeout = TimeSpan.FromDays(1)
+                })
+#elif DEBUG
             .UseMemoryStorage(
                 new MemoryStorageOptions() // TODO: Change to external storage
                 {
                     FetchNextJobTimeout = TimeSpan.FromDays(1)
                 })
+#endif
             .UseSerilogLogProvider();
     });
 builder.Services.AddHangfireServer();
