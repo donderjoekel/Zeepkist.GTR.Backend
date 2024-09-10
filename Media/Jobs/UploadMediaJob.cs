@@ -43,7 +43,7 @@ public class UploadMediaJob
     {
         jobScheduler.Enqueue<UploadMediaJob>(
             recordId,
-            Guid.NewGuid().ToString(),
+            recordId.ToString() + "-" + Guid.NewGuid(),
             ghostData,
             screenshotData);
     }
