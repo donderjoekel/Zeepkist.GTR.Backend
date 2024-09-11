@@ -79,7 +79,7 @@ public class MediaService : IMediaService
         }
 
         RecordMedia recordMedia = _repository.Upsert(
-            recordId,
+            media => media.IdRecord == recordId,
             () => new RecordMedia
             {
                 IdRecord = recordId,
@@ -108,7 +108,7 @@ public class MediaService : IMediaService
         }
 
         RecordMedia recordMedia = _repository.Upsert(
-            recordId,
+            media => media.IdRecord == recordId,
             () => new RecordMedia
             {
                 IdRecord = recordId,

@@ -39,11 +39,15 @@ public class UploadMediaJob
         }
     }
 
-    public static void Schedule(IJobScheduler jobScheduler, int recordId, string ghostData, string screenshotData)
+    public static void Schedule(IJobScheduler jobScheduler,
+        int userId,
+        int recordId,
+        string ghostData,
+        string screenshotData)
     {
         jobScheduler.Enqueue<UploadMediaJob>(
             recordId,
-            recordId.ToString() + "-" + Guid.NewGuid(),
+            $"{userId}-{recordId}-{Guid.NewGuid()}",
             ghostData,
             screenshotData);
     }

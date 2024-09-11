@@ -82,7 +82,7 @@ public class RecordsService : IRecordsService
                 DateCreated = now,
             });
 
-        UploadMediaJob.Schedule(_jobScheduler, record.Id, resource.GhostData, resource.ScreenshotData);
+        UploadMediaJob.Schedule(_jobScheduler, user.Id, record.Id, resource.GhostData, resource.ScreenshotData);
         ProcessPersonalBestJob.Schedule(_jobScheduler, record.Id, record.IdUser, record.IdLevel);
         ProcessWorldRecordJob.Schedule(_jobScheduler, record.Id, record.IdLevel);
         return Result.Ok();
