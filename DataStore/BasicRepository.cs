@@ -39,6 +39,7 @@ public interface IBasicRepository<TModel>
         Func<TModel, TModel> update);
 
     bool Delete(TModel model);
+    bool Delete(IEnumerable<TModel> models);
 }
 
 public abstract class BasicRepository<TModel> : IBasicRepository<TModel>
@@ -187,5 +188,13 @@ public abstract class BasicRepository<TModel> : IBasicRepository<TModel>
         _set.Remove(model);
         int changes = _database.SaveChanges();
         return changes > 0;
+    }
+
+    public bool Delete(IEnumerable<TModel> models)
+    {
+        int count = models.Count();
+        _set.RemoveRange(models);
+        int changes = _database.SaveChanges();
+        return changes == count;
     }
 }

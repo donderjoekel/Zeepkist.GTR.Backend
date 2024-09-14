@@ -66,5 +66,10 @@ public class ProcessLevelRequestsJob
                 _service.Delete(request);
             }
         }
+
+        if (requests.Count > 0)
+        {
+            _service.Delete(requests);
+        }
     }
 }

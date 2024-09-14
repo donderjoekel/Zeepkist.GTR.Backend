@@ -7,6 +7,7 @@ public interface ILevelRequestsService
     void Add(ulong workshopId);
     IEnumerable<LevelRequest> GetRequests();
     void Delete(LevelRequest request);
+    void Delete(IEnumerable<LevelRequest> requests);
 }
 
 public class LevelRequestsService : ILevelRequestsService
@@ -38,5 +39,10 @@ public class LevelRequestsService : ILevelRequestsService
     public void Delete(LevelRequest request)
     {
         _repository.Delete(request);
+    }
+
+    public void Delete(IEnumerable<LevelRequest> requests)
+    {
+        _repository.Delete(requests);
     }
 }
