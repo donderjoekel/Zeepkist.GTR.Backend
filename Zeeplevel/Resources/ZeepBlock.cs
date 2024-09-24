@@ -1,5 +1,5 @@
 ﻿using System.Globalization;
-using System.Numerics;
+using TNRD.Zeepkist.GTR.Backend.Numerics;
 
 namespace TNRD.Zeepkist.GTR.Backend.Zeeplevel.Resources;
 

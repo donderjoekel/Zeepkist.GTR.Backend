@@ -15,6 +15,12 @@ public class LevelMetadataService : ILevelMetadataService
     private static readonly int[] CheckpointIds = [22, 372, 373, 1275, 1276, 1277, 1278, 1279, 1615];
     private static readonly int[] FinishIds = [2, 1273, 1274, 1412, 1616];
 
+    private static readonly int[] AlternateCheckpointIds =
+    [
+        1607, 1608, 1609, 1610, 1611, 1612, 1613, 1314, 1978, 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987,
+        1978, 1988, 1989, 1990, 1991, 1992, 1993
+    ];
+
     private readonly ILevelMetadataRepository _repository;
     private readonly ILevelService _levelService;
     private readonly ILogger<LevelMetadataService> _logger;
@@ -68,7 +74,8 @@ public class LevelMetadataService : ILevelMetadataService
 
     private static int CountCheckpoints(ZeepLevel zeepLevel)
     {
-        return zeepLevel.Blocks.Count(x => CheckpointIds.Contains(x.Id));
+        return zeepLevel.Blocks.Count(x => CheckpointIds.Contains(x.Id)) +
+               zeepLevel.Blocks.Where(x => AlternateCheckpointIds.Contains(x.Id)).Count(x => x.Options[5] >= 0.5f);
     }
 
     private static int CountFinishes(ZeepLevel zeepLevel)
