@@ -71,19 +71,6 @@ public class CalculateLevelPointsJob
         if (existingLevelPoints.Count > 0)
             _levelPointsService.UpdateRange(existingLevelPoints.Values);
 
-        // foreach (int levelId in levelIds)
-        // {
-        //     int levelPoints = allPersonalBests.Count(x => x.IdLevel == levelId);
-        //     if (levelPoints < 8)
-        //         levelPoints = 0;
-        //
-        //     if (levelItems.All(x => x.IdLevel != levelId))
-        //         levelPoints = 0;
-        //
-        //     _levelPointsService.Update(levelId, levelPoints);
-        //     _logger.LogInformation("Updated level {LevelId} with {LevelPoints} points", levelId, levelPoints);
-        // }
-
         _logger.LogInformation("Finished calculating level points");
         return Task.CompletedTask;
     }

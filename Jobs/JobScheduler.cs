@@ -45,6 +45,7 @@ public class JobScheduler : IJobScheduler
     public void ScheduleRecurringJobs()
     {
 #if DEBUG
+        ScheduleRecurringJob<DownloadAllLevelsJob>(Cron.Never());
         ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
         ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
         ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.Never());
@@ -61,7 +62,7 @@ public class JobScheduler : IJobScheduler
         }
         else
         {
-            ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Never());
+            ScheduleRecurringJob<CalculateLevelPointsJob>(Cron.Daily());
             ScheduleRecurringJob<CalculateUserPointsJob>(Cron.Hourly());
         }
 #endif
