@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Collections.Concurrent;
+using JetBrains.Annotations;
 using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Records;
 using TNRD.Zeepkist.GTR.Database.Data.Entities;
@@ -7,6 +8,7 @@ namespace TNRD.Zeepkist.GTR.Backend.WorldRecords.Jobs;
 
 public class ProcessWorldRecordJob
 {
+    private static readonly ConcurrentDictionary<int, SemaphoreSlim> Semaphores = new();
     private readonly IWorldRecordsService _worldRecordsService;
     private readonly IRecordsService _recordsService;
 
@@ -17,7 +19,7 @@ public class ProcessWorldRecordJob
     }
 
     [UsedImplicitly]
-    public Task ExecuteAsync(int recordId, int levelId)
+    public async Task ExecuteAsync(int recordId, int levelId)
     {
         Record? record = _recordsService.GetById(recordId);
         if (record == null)
@@ -25,13 +27,27 @@ public class ProcessWorldRecordJob
             throw new InvalidOperationException($"Record with ID '{recordId}' not found");
         }
 
-        _worldRecordsService.UpdateDailyWorldRecord(record, levelId);
-        _worldRecordsService.UpdateWeeklyWorldRecord(record, levelId);
-        _worldRecordsService.UpdateMonthlyWorldRecord(record, levelId);
-        _worldRecordsService.UpdateQuarterlyWorldRecord(record, levelId);
-        _worldRecordsService.UpdateYearlyWorldRecord(record, levelId);
-        _worldRecordsService.UpdateGlobalWorldRecord(record, levelId);
-        return Task.CompletedTask;
+        SemaphoreSlim semaphore = Semaphores.GetOrAdd(levelId, x => new SemaphoreSlim(1, 1));
+
+        try
+        {
+            await semaphore.WaitAsync();
+            _worldRecordsService.UpdateDailyWorldRecord(record, levelId);
+            _worldRecordsService.UpdateWeeklyWorldRecord(record, levelId);
+            _worldRecordsService.UpdateMonthlyWorldRecord(record, levelId);
+            _worldRecordsService.UpdateQuarterlyWorldRecord(record, levelId);
+            _worldRecordsService.UpdateYearlyWorldRecord(record, levelId);
+            _worldRecordsService.UpdateGlobalWorldRecord(record, levelId);
+        }
+        finally
+        {
+            semaphore.Release();
+
+            if (semaphore.CurrentCount == 1)
+            {
+                Semaphores.TryRemove(levelId, out _);
+            }
+        }
     }
 
     public static void Schedule(IJobScheduler jobScheduler, int recordId, int levelId)
