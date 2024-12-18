@@ -85,7 +85,7 @@ public class PersonalBestsService : IPersonalBestsService
                     Day = day
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _dailyRepository.Update(existing);
@@ -123,7 +123,7 @@ public class PersonalBestsService : IPersonalBestsService
                     Week = week
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _weeklyRepository.Update(existing);
@@ -158,7 +158,7 @@ public class PersonalBestsService : IPersonalBestsService
                     Month = month
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _monthlyRepository.Update(existing);
@@ -193,7 +193,7 @@ public class PersonalBestsService : IPersonalBestsService
                     Quarter = quarter
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _quarterlyRepository.Update(existing);
@@ -225,7 +225,7 @@ public class PersonalBestsService : IPersonalBestsService
                     Year = year
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _yearlyRepository.Update(existing);
@@ -253,7 +253,7 @@ public class PersonalBestsService : IPersonalBestsService
                     IdLevel = levelId
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _globalRepository.Update(existing);

@@ -15,7 +15,10 @@ namespace TNRD.Zeepkist.GTR.Backend.Records;
 public interface IRecordsService
 {
     IEnumerable<Record> GetAll();
+    IEnumerable<Record> GetByLevelId(int levelId);
     Record? GetById(int id);
+    Record? GetBestValid(int levelId);
+    Record? GetBestValidForUser(int userId, int levelId);
     Result Submit(ulong steamId, RecordResource resource);
 }
 
@@ -49,9 +52,24 @@ public class RecordsService : IRecordsService
         return _repository.GetAll();
     }
 
+    public IEnumerable<Record> GetByLevelId(int levelId)
+    {
+        return _repository.GetByLevelId(levelId);
+    }
+
     public Record? GetById(int id)
     {
         return _repository.GetById(id);
+    }
+
+    public Record? GetBestValid(int levelId)
+    {
+        return _repository.GetBestValid(levelId);
+    }
+
+    public Record? GetBestValidForUser(int userId, int levelId)
+    {
+        return _repository.GetBestValidForUser(userId, levelId);
     }
 
     public Result Submit(ulong steamId, RecordResource resource)
@@ -83,8 +101,13 @@ public class RecordsService : IRecordsService
             });
 
         UploadMediaJob.Schedule(_jobScheduler, user.Id, record.Id, resource.GhostData, resource.ScreenshotData);
-        ProcessPersonalBestJob.Schedule(_jobScheduler, record.Id, record.IdUser, record.IdLevel);
-        ProcessWorldRecordJob.Schedule(_jobScheduler, record.Id, record.IdLevel);
+
+        if (record.IsValid)
+        {
+            ProcessPersonalBestJob.Schedule(_jobScheduler, record.IdUser, record.IdLevel);
+            ProcessWorldRecordJob.Schedule(_jobScheduler, record.IdLevel);
+        }
+
         return Result.Ok();
     }
 }

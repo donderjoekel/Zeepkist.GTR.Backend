@@ -19,12 +19,12 @@ public class ProcessWorldRecordJob
     }
 
     [UsedImplicitly]
-    public async Task ExecuteAsync(int recordId, int levelId)
+    public async Task ExecuteAsync(int levelId)
     {
-        Record? record = _recordsService.GetById(recordId);
+        Record? record = _recordsService.GetBestValid(levelId);
         if (record == null)
         {
-            throw new InvalidOperationException($"Record with ID '{recordId}' not found");
+            throw new InvalidOperationException($"No valid record found for level '{levelId}'");
         }
 
         SemaphoreSlim semaphore = Semaphores.GetOrAdd(levelId, x => new SemaphoreSlim(1, 1));
@@ -32,11 +32,11 @@ public class ProcessWorldRecordJob
         try
         {
             await semaphore.WaitAsync();
-            _worldRecordsService.UpdateDailyWorldRecord(record, levelId);
-            _worldRecordsService.UpdateWeeklyWorldRecord(record, levelId);
-            _worldRecordsService.UpdateMonthlyWorldRecord(record, levelId);
-            _worldRecordsService.UpdateQuarterlyWorldRecord(record, levelId);
-            _worldRecordsService.UpdateYearlyWorldRecord(record, levelId);
+            // _worldRecordsService.UpdateDailyWorldRecord(record, levelId);
+            // _worldRecordsService.UpdateWeeklyWorldRecord(record, levelId);
+            // _worldRecordsService.UpdateMonthlyWorldRecord(record, levelId);
+            // _worldRecordsService.UpdateQuarterlyWorldRecord(record, levelId);
+            // _worldRecordsService.UpdateYearlyWorldRecord(record, levelId);
             _worldRecordsService.UpdateGlobalWorldRecord(record, levelId);
         }
         finally
@@ -50,8 +50,8 @@ public class ProcessWorldRecordJob
         }
     }
 
-    public static void Schedule(IJobScheduler jobScheduler, int recordId, int levelId)
+    public static void Schedule(IJobScheduler jobScheduler, int levelId)
     {
-        jobScheduler.Enqueue<ProcessWorldRecordJob>(recordId, levelId);
+        jobScheduler.Enqueue<ProcessWorldRecordJob>(levelId);
     }
 }

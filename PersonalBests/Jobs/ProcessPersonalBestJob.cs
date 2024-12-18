@@ -19,23 +19,23 @@ public class ProcessPersonalBestJob
     }
 
     [UsedImplicitly]
-    public async Task ExecuteAsync(int recordId, int userId, int levelId)
+    public async Task ExecuteAsync(int userId, int levelId)
     {
-        Record? record = _recordsService.GetById(recordId);
+        Record? record = _recordsService.GetBestValidForUser(userId, levelId);
         if (record == null)
         {
-            throw new InvalidOperationException($"Record with ID '{recordId}' not found");
+            throw new InvalidOperationException($"No valid record found for user '{userId}' and level '{levelId}'");
         }
 
         SemaphoreSlim semaphore = Semaphores.GetOrAdd(userId, x => new SemaphoreSlim(1, 1));
         try
         {
             await semaphore.WaitAsync();
-            _personalBestsService.UpdateDaily(record, userId, levelId);
-            _personalBestsService.UpdateWeekly(record, userId, levelId);
-            _personalBestsService.UpdateMonthly(record, userId, levelId);
-            _personalBestsService.UpdateQuarterly(record, userId, levelId);
-            _personalBestsService.UpdateYearly(record, userId, levelId);
+            // _personalBestsService.UpdateDaily(record, userId, levelId);
+            // _personalBestsService.UpdateWeekly(record, userId, levelId);
+            // _personalBestsService.UpdateMonthly(record, userId, levelId);
+            // _personalBestsService.UpdateQuarterly(record, userId, levelId);
+            // _personalBestsService.UpdateYearly(record, userId, levelId);
             _personalBestsService.UpdateGlobal(record, userId, levelId);
         }
         finally
@@ -49,8 +49,8 @@ public class ProcessPersonalBestJob
         }
     }
 
-    public static void Schedule(IJobScheduler jobScheduler, int recordId, int userId, int levelId)
+    public static void Schedule(IJobScheduler jobScheduler, int userId, int levelId)
     {
-        jobScheduler.Enqueue<ProcessPersonalBestJob>(recordId, userId, levelId);
+        jobScheduler.Enqueue<ProcessPersonalBestJob>(userId, levelId);
     }
 }

@@ -77,7 +77,7 @@ public class WorldRecordsService : IWorldRecordsService
                     Day = day
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _dailyRepository.Update(existing);
@@ -111,7 +111,7 @@ public class WorldRecordsService : IWorldRecordsService
                     Week = week
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _weeklyRepository.Update(existing);
@@ -142,7 +142,7 @@ public class WorldRecordsService : IWorldRecordsService
                     Month = month
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _monthlyRepository.Update(existing);
@@ -176,7 +176,7 @@ public class WorldRecordsService : IWorldRecordsService
                     Quarter = quarter
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _quarterlyRepository.Update(existing);
@@ -205,7 +205,7 @@ public class WorldRecordsService : IWorldRecordsService
                     Year = year
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _yearlyRepository.Update(existing);
@@ -229,7 +229,7 @@ public class WorldRecordsService : IWorldRecordsService
                     IdLevel = levelId
                 });
         }
-        else if (existing.IdRecord != record.Id && record.Time < existing.Record.Time)
+        else if (!existing.Record.IsValid || existing.IdRecord != record.Id && record.Time < existing.Record.Time)
         {
             existing.IdRecord = record.Id;
             _globalRepository.Update(existing);
