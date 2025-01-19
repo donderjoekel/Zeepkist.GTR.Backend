@@ -9,7 +9,7 @@ public interface IVotingRepository : IBasicRepository<Vote>
 
 public class VotingRepository : BasicRepository<Vote>, IVotingRepository
 {
-    public VotingRepository(IDatabase database, ILogger logger)
+    public VotingRepository(IDatabase database, ILogger<VotingRepository> logger)
         : base(database, logger)
     {
     }
