@@ -40,6 +40,7 @@ using TNRD.Zeepkist.GTR.Backend.Upvotes;
 using TNRD.Zeepkist.GTR.Backend.Users;
 using TNRD.Zeepkist.GTR.Backend.Users.Points;
 using TNRD.Zeepkist.GTR.Backend.Versioning;
+using TNRD.Zeepkist.GTR.Backend.Voting;
 using TNRD.Zeepkist.GTR.Backend.Workshop;
 using TNRD.Zeepkist.GTR.Backend.WorldRecords;
 using TNRD.Zeepkist.GTR.Backend.Zeeplevel;
@@ -180,6 +181,9 @@ builder.Services.AddScoped<IPersonalBestsYearlyRepository, PersonalBestsYearlyRe
 
 builder.Services.AddScoped<IRecordsRepository, RecordsRepository>();
 builder.Services.AddScoped<IRecordsService, RecordsService>();
+
+builder.Services.AddScoped<IVotingRepository, VotingRepository>();
+builder.Services.AddScoped<IVotingService, VotingService>();
 
 // builder.Services.AddScoped<IRemoteStorageService, GoogleCloudStorageService>();
 builder.Services.AddScoped<IRemoteStorageService, WasabiStorageService>();
