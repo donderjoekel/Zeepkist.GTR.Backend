@@ -6,7 +6,7 @@ using TNRD.Zeepkist.GTR.Backend.Voting.Resources;
 namespace TNRD.Zeepkist.GTR.Backend.Voting;
 
 [ApiController]
-[Route("votes")]
+[Route("voting")]
 public class VotingController : ControllerBase
 {
     private readonly IVotingService _service;
