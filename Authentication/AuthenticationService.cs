@@ -98,11 +98,6 @@ public class AuthenticationService : IAuthenticationService
             return Result.Fail("No authentication data");
         }
 
-        if (auth.AccessToken != accessToken)
-        {
-            return Result.Fail("Invalid login token");
-        }
-
         if (auth.RefreshToken != refreshToken)
         {
             return Result.Fail("Invalid refresh token");
