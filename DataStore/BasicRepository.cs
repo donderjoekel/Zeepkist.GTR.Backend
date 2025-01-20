@@ -122,6 +122,7 @@ public abstract class BasicRepository<TModel> : IBasicRepository<TModel>
     public TModel Insert(TModel model, DateTimeOffset dateCreated)
     {
         model.DateCreated = dateCreated;
+        model.DateUpdated = dateCreated;
         EntityEntry<TModel> entry = _set.Entry(model);
         entry.State = EntityState.Added;
         _database.SaveChanges();
