@@ -27,6 +27,34 @@ public class WasabiStorageService : IRemoteStorageService
         _imageBlobStorage = _blobStorage.WithGzipCompression();
     }
 
+    public async Task<Result> Delete(string path)
+    {
+        try
+        {
+            await _blobStorage.DeleteAsync(path);
+            return Result.Ok();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete file at path '{Path}'", path);
+            return Result.Fail(new ExceptionalError(e));
+        }
+    }
+
+    public async Task<Result> Delete(string[] paths)
+    {
+        try
+        {
+            await _blobStorage.DeleteAsync(paths);
+            return Result.Ok();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete multiple paths");
+            return Result.Fail(new ExceptionalError(e));
+        }
+    }
+
     public Task<Result<string>> Upload(
         string b64,
         string folder,
@@ -52,7 +80,7 @@ public class WasabiStorageService : IRemoteStorageService
         try
         {
             await _blobStorage.WriteAsync(path, buffer);
-            return Result.Ok("https://cdn.zeepkist-gtr.com" + path);
+            return Result.Ok(path);
         }
         catch (Exception e)
         {
@@ -80,7 +108,7 @@ public class WasabiStorageService : IRemoteStorageService
                 _logger.LogError("Failed to set gzip header");
             }
 
-            return Result.Ok("https://cdn.zeepkist-gtr.com" + path);
+            return Result.Ok(path);
         }
         catch (Exception e)
         {

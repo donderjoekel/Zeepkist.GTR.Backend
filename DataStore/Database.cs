@@ -13,9 +13,9 @@ public interface IDatabase
 
 public class Database : IDatabase
 {
-    private readonly GtarrContext _db;
+    private readonly GtrExperimentContext _db;
 
-    public Database(GtarrContext db)
+    public Database(GtrExperimentContext db)
     {
         _db = db;
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;

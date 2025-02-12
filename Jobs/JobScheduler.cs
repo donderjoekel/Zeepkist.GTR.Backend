@@ -6,9 +6,7 @@ using Microsoft.Extensions.Options;
 using TNRD.Zeepkist.GTR.Backend.Levels.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Levels.Points.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Levels.Requests.Jobs;
-using TNRD.Zeepkist.GTR.Backend.PersonalBests.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Users.Points.Jobs;
-using TNRD.Zeepkist.GTR.Backend.WorldRecords.Jobs;
 
 namespace TNRD.Zeepkist.GTR.Backend.Jobs;
 
@@ -45,8 +43,6 @@ public class JobScheduler : IJobScheduler
     public void ScheduleRecurringJobs()
     {
 #if DEBUG
-        ScheduleRecurringJob<FixWorldRecordsJob>(Cron.Never());
-        ScheduleRecurringJob<FixPersonalBestsJob>(Cron.Never());
         ScheduleRecurringJob<ProcessLevelRequestsJob>(Cron.Never());
         ScheduleRecurringJob<FullWorkshopScanJob>(Cron.Never());
         ScheduleRecurringJob<PartialWorkshopScanJob>(Cron.Never());

@@ -9,8 +9,6 @@ public class RecordResource
     [Required] public List<float> Splits { get; set; } = null!;
     [Required] public List<float> Speeds { get; set; } = null!;
     [Required] public string GhostData { get; set; } = null!;
-    [Required] public string ScreenshotData { get; set; } = null!;
-    [Required] public bool IsValid { get; set; }
     [Required] public string GameVersion { get; set; } = null!;
     [Required] public string ModVersion { get; set; } = null!;
 }

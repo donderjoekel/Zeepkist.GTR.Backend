@@ -4,6 +4,10 @@ namespace TNRD.Zeepkist.GTR.Backend.RemoteStorage;
 
 public interface IRemoteStorageService
 {
+    Task<Result> Delete(string path);
+
+    Task<Result> Delete(string[] paths);
+    
     Task<Result<string>> Upload(
         string b64,
         string folder,

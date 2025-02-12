@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using TNRD.Zeepkist.GTR.Backend.Jwt;
 using TNRD.Zeepkist.GTR.Backend.Records.Resources;
@@ -17,7 +18,7 @@ public class RecordsController : ControllerBase
     }
 
     [HttpPost("submit")]
-    public IActionResult Submit([FromBody] RecordResource record)
+    public async Task<IActionResult> Submit([FromBody] RecordResource record)
     {
         string? value = User.FindFirstValue(IJwtService.SteamIdClaimName);
         if (string.IsNullOrEmpty(value))
@@ -30,7 +31,12 @@ public class RecordsController : ControllerBase
             return Unauthorized();
         }
 
-        _service.Submit(steamId, record);
-        return Ok();
+        Result result = await _service.Submit(steamId, record);
+        if (result.IsSuccess)
+        {
+            return Ok();
+        }
+
+        return BadRequest(result.ToString());
     }
 }

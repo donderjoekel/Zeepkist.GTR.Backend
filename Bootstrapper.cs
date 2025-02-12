@@ -11,9 +11,8 @@ public class Bootstrapper : BackgroundService
         _jobScheduler = jobScheduler;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _jobScheduler.ScheduleRecurringJobs();
-        return Task.CompletedTask;
     }
 }

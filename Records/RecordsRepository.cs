@@ -6,8 +6,8 @@ namespace TNRD.Zeepkist.GTR.Backend.Records;
 public interface IRecordsRepository : IBasicRepository<Record>
 {
     IEnumerable<Record> GetByLevelId(int levelId);
-    Record? GetBestValid(int levelId);
-    Record? GetBestValidForUser(int userId, int levelId);
+    Record? GetBest(int levelId);
+    Record? GetBestForUser(int userId, int levelId);
 }
 
 public class RecordsRepository : BasicRepository<Record>, IRecordsRepository
@@ -22,16 +22,16 @@ public class RecordsRepository : BasicRepository<Record>, IRecordsRepository
         return GetAll(x => x.IdLevel == levelId);
     }
 
-    public Record? GetBestValid(int levelId)
+    public Record? GetBest(int levelId)
     {
-        return GetAll(x => x.IdLevel == levelId && x.IsValid)
+        return GetAll(x => x.IdLevel == levelId)
             .OrderBy(x => x.Time)
             .FirstOrDefault();
     }
 
-    public Record? GetBestValidForUser(int userId, int levelId)
+    public Record? GetBestForUser(int userId, int levelId)
     {
-        return GetAll(x => x.IdLevel == levelId && x.IsValid && x.IdUser == userId)
+        return GetAll(x => x.IdLevel == levelId && x.IdUser == userId)
             .OrderBy(x => x.Time)
             .FirstOrDefault();
     }

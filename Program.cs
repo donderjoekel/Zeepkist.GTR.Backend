@@ -1,9 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Channels;
 using Docker.DotNet;
 using Hangfire;
 using Hangfire.MemoryStorage;
-using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -30,10 +30,11 @@ using TNRD.Zeepkist.GTR.Backend.Levels.Points;
 using TNRD.Zeepkist.GTR.Backend.Levels.Requests;
 using TNRD.Zeepkist.GTR.Backend.Logging;
 using TNRD.Zeepkist.GTR.Backend.Media;
-using TNRD.Zeepkist.GTR.Backend.Media.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Middleware;
 using TNRD.Zeepkist.GTR.Backend.PersonalBests;
 using TNRD.Zeepkist.GTR.Backend.Records;
+using TNRD.Zeepkist.GTR.Backend.Records.Processors;
+using TNRD.Zeepkist.GTR.Backend.Records.Requests;
 using TNRD.Zeepkist.GTR.Backend.RemoteStorage;
 using TNRD.Zeepkist.GTR.Backend.Steam;
 using TNRD.Zeepkist.GTR.Backend.Upvotes;
@@ -128,11 +129,14 @@ builder.Services.AddHangfire(
     });
 builder.Services.AddHangfireServer();
 
-builder.Services.AddNpgsql<GtarrContext>(
+builder.Services.AddNpgsql<GtrExperimentContext>(
     builder.Configuration["Database:ConnectionString"],
     options => { options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery); });
 
 builder.Services.AddHostedService<Bootstrapper>();
+builder.Services.AddHostedService<ProcessPersonalBestHostedService>();
+builder.Services.AddHostedService<ProcessWorldRecordHostedService>();
+builder.Services.AddHostedService<ProcessRecordMediaHostedService>();
 
 builder.Services.AddSingleton<IJobScheduler, JobScheduler>();
 builder.Services.AddSingleton<IDockerClient, DockerClient>(
@@ -142,6 +146,13 @@ builder.Services.AddSingleton<IDockerClient, DockerClient>(
 builder.Services.AddSingleton<IHashService, HashService>();
 builder.Services.AddSingleton<IWorkshopService, WorkshopService>();
 builder.Services.AddSingleton<IZeeplevelService, ZeeplevelService>();
+
+builder.Services.AddSingleton<Channel<ProcessPersonalBestRequest>>(_ =>
+    Channel.CreateUnbounded<ProcessPersonalBestRequest>());
+builder.Services.AddSingleton<Channel<ProcessWorldRecordRequest>>(_ =>
+    Channel.CreateUnbounded<ProcessWorldRecordRequest>());
+builder.Services.AddSingleton<Channel<ProcessRecordMediaRequest>>(_ =>
+    Channel.CreateUnbounded<ProcessRecordMediaRequest>());
 
 builder.Services.AddScoped<IDatabase, Database>();
 
@@ -172,12 +183,7 @@ builder.Services.AddScoped<IMediaRepository, MediaRepository>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 
 builder.Services.AddScoped<IPersonalBestsService, PersonalBestsService>();
-builder.Services.AddScoped<IPersonalBestsDailyRepository, PersonalBestsDailyRepository>();
-builder.Services.AddScoped<IPersonalBestsGlobalRepository, PersonalBestsGlobalRepository>();
-builder.Services.AddScoped<IPersonalBestsMonthlyRepository, PersonalBestsMonthlyRepository>();
-builder.Services.AddScoped<IPersonalBestsQuarterlyRepository, PersonalBestsQuarterlyRepository>();
-builder.Services.AddScoped<IPersonalBestsWeeklyRepository, PersonalBestsWeeklyRepository>();
-builder.Services.AddScoped<IPersonalBestsYearlyRepository, PersonalBestsYearlyRepository>();
+builder.Services.AddScoped<IPersonalBestsRepository, PersonalBestsRepository>();
 
 builder.Services.AddScoped<IRecordsRepository, RecordsRepository>();
 builder.Services.AddScoped<IRecordsService, RecordsService>();
@@ -209,19 +215,12 @@ builder.Services.AddScoped<IVersionService, VersionService>();
 builder.Services.AddScoped<IVersionRepository, VersionRepository>();
 
 builder.Services.AddScoped<IWorldRecordsService, WorldRecordsService>();
-builder.Services.AddScoped<IWorldRecordsDailyRepository, WorldRecordsDailyRepository>();
-builder.Services.AddScoped<IWorldRecordsGlobalRepository, WorldRecordsGlobalRepository>();
-builder.Services.AddScoped<IWorldRecordsMonthlyRepository, WorldRecordsMonthlyRepository>();
-builder.Services.AddScoped<IWorldRecordsQuarterlyRepository, WorldRecordsQuarterlyRepository>();
-builder.Services.AddScoped<IWorldRecordsWeeklyRepository, WorldRecordsWeeklyRepository>();
-builder.Services.AddScoped<IWorldRecordsYearlyRepository, WorldRecordsYearlyRepository>();
+builder.Services.AddScoped<IWorldRecordsRepository, WorldRecordsRepository>();
 
 builder.Services.AddScoped<WorkshopLister>();
 builder.Services.AddScoped<WorkshopDownloader>();
 builder.Services.AddScoped<WorkshopProcessor>();
 builder.Services.AddScoped<WorkshopProcessor.WorkshopProcess>();
-
-builder.Services.AddTransient<UploadMediaJob>();
 
 builder.Services.Configure<AuthenticationOptions>(builder.Configuration.GetSection(AuthenticationOptions.Key));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.Key));

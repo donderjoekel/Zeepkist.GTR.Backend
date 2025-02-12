@@ -1,35 +1,37 @@
-﻿using FluentResults;
+﻿using System.Threading.Channels;
+using FluentResults;
+using Microsoft.EntityFrameworkCore;
+using TNRD.Zeepkist.GTR.Backend.DataStore;
 using TNRD.Zeepkist.GTR.Backend.Jobs;
 using TNRD.Zeepkist.GTR.Backend.Levels;
-using TNRD.Zeepkist.GTR.Backend.Media;
-using TNRD.Zeepkist.GTR.Backend.Media.Jobs;
-using TNRD.Zeepkist.GTR.Backend.PersonalBests.Jobs;
+using TNRD.Zeepkist.GTR.Backend.Records.Requests;
 using TNRD.Zeepkist.GTR.Backend.Records.Resources;
 using TNRD.Zeepkist.GTR.Backend.Results;
 using TNRD.Zeepkist.GTR.Backend.Users;
-using TNRD.Zeepkist.GTR.Backend.WorldRecords.Jobs;
 using TNRD.Zeepkist.GTR.Database.Data.Entities;
 
 namespace TNRD.Zeepkist.GTR.Backend.Records;
 
-public interface IRecordsService
+public interface IRecordsService : IBasicService<Record>
 {
-    IEnumerable<Record> GetAll();
     IEnumerable<Record> GetByLevelId(int levelId);
-    Record? GetById(int id);
-    Record? GetBestValid(int levelId);
-    Record? GetBestValidForUser(int userId, int levelId);
-    Result Submit(ulong steamId, RecordResource resource);
+    IEnumerable<Record> GetTop(int amount, int userId, int levelId);
+    IEnumerable<Record> GetByUserId(int userId);
+    Record? GetBest(int levelId);
+    Record? GetBestForUser(int userId, int levelId);
+    Task<Result> Submit(ulong steamId, RecordResource resource);
 }
 
-public class RecordsService : IRecordsService
+public class RecordsService : BasicService<Record>, IRecordsService
 {
     private readonly ILogger<RecordsService> _logger;
     private readonly IRecordsRepository _repository;
     private readonly ILevelService _levelService;
     private readonly IJobScheduler _jobScheduler;
     private readonly IUserService _userService;
-    private readonly IMediaService _mediaService;
+    private readonly Channel<ProcessWorldRecordRequest> _worldRecordChannel;
+    private readonly Channel<ProcessPersonalBestRequest> _personalBestChannel;
+    private readonly Channel<ProcessRecordMediaRequest> _recordMediaChannel;
 
     public RecordsService(
         ILogger<RecordsService> logger,
@@ -37,19 +39,19 @@ public class RecordsService : IRecordsService
         ILevelService levelService,
         IJobScheduler jobScheduler,
         IUserService userService,
-        IMediaService mediaService)
+        Channel<ProcessWorldRecordRequest> worldRecordChannel,
+        Channel<ProcessPersonalBestRequest> personalBestChannel,
+        Channel<ProcessRecordMediaRequest> recordMediaChannel)
+        : base(repository)
     {
         _logger = logger;
         _repository = repository;
         _levelService = levelService;
         _jobScheduler = jobScheduler;
         _userService = userService;
-        _mediaService = mediaService;
-    }
-
-    public IEnumerable<Record> GetAll()
-    {
-        return _repository.GetAll();
+        _worldRecordChannel = worldRecordChannel;
+        _personalBestChannel = personalBestChannel;
+        _recordMediaChannel = recordMediaChannel;
     }
 
     public IEnumerable<Record> GetByLevelId(int levelId)
@@ -57,22 +59,31 @@ public class RecordsService : IRecordsService
         return _repository.GetByLevelId(levelId);
     }
 
-    public Record? GetById(int id)
+    public IEnumerable<Record> GetTop(int amount, int userId, int levelId)
     {
-        return _repository.GetById(id);
+        return _repository
+            .GetAll(x => x.IdUser == userId && x.IdLevel == levelId)
+            .OrderBy(x => x.Time)
+            .Take(amount);
     }
 
-    public Record? GetBestValid(int levelId)
+    public IEnumerable<Record> GetByUserId(int userId)
     {
-        return _repository.GetBestValid(levelId);
+        return _repository
+            .GetAll(x => x.IdUser == userId, set => set.Include(x => x.RecordMedia));
     }
 
-    public Record? GetBestValidForUser(int userId, int levelId)
+    public Record? GetBest(int levelId)
     {
-        return _repository.GetBestValidForUser(userId, levelId);
+        return _repository.GetBest(levelId);
     }
 
-    public Result Submit(ulong steamId, RecordResource resource)
+    public Record? GetBestForUser(int userId, int levelId)
+    {
+        return _repository.GetBestForUser(userId, levelId);
+    }
+
+    public async Task<Result> Submit(ulong steamId, RecordResource resource)
     {
         if (!_userService.TryGet(steamId, out User? user))
         {
@@ -87,26 +98,21 @@ public class RecordsService : IRecordsService
         DateTime now = DateTime.UtcNow;
 
         Record record = _repository.Insert(
-            new Record()
+            new Record
             {
                 IdUser = user.Id,
                 IdLevel = level.Id,
                 Time = resource.Time,
                 Splits = resource.Splits,
                 Speeds = resource.Speeds,
-                IsValid = resource.IsValid,
                 GameVersion = resource.GameVersion,
                 ModVersion = resource.ModVersion,
                 DateCreated = now,
             });
 
-        UploadMediaJob.Schedule(_jobScheduler, user.Id, record.Id, resource.GhostData, resource.ScreenshotData);
-
-        if (record.IsValid)
-        {
-            ProcessPersonalBestJob.Schedule(_jobScheduler, record.IdUser, record.IdLevel);
-            ProcessWorldRecordJob.Schedule(_jobScheduler, record.IdLevel);
-        }
+        await _personalBestChannel.Writer.WriteAsync(new ProcessPersonalBestRequest(record));
+        await _worldRecordChannel.Writer.WriteAsync(new ProcessWorldRecordRequest(record));
+        await _recordMediaChannel.Writer.WriteAsync(new ProcessRecordMediaRequest(record, resource.GhostData));
 
         return Result.Ok();
     }
