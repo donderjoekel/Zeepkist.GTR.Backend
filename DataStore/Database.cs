@@ -5,6 +5,8 @@ namespace TNRD.Zeepkist.GTR.Backend.DataStore;
 
 public interface IDatabase
 {
+    Task<bool> EnsureCreated();
+
     DbSet<TModel> GetDbSet<TModel>()
         where TModel : class;
 
@@ -19,6 +21,11 @@ public class Database : IDatabase
     {
         _db = db;
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+    }
+
+    public async Task<bool> EnsureCreated()
+    {
+        return await _db.Database.EnsureCreatedAsync();
     }
 
     public DbSet<TModel> GetDbSet<TModel>()
