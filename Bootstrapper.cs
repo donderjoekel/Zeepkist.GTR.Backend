@@ -16,10 +16,10 @@ public class Bootstrapper : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _jobScheduler.ScheduleRecurringJobs();
-
         using IServiceScope scope = _provider.CreateScope();
         IDatabase database = scope.ServiceProvider.GetRequiredService<IDatabase>();
         await database.EnsureCreated();
+
+        _jobScheduler.ScheduleRecurringJobs();
     }
 }
