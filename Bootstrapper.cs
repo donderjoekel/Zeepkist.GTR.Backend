@@ -20,6 +20,6 @@ public class Bootstrapper : BackgroundService
         IDatabase database = scope.ServiceProvider.GetRequiredService<IDatabase>();
         await database.EnsureCreated();
 
-        _jobScheduler.ScheduleRecurringJobs();
+        // _jobScheduler.ScheduleRecurringJobs();
     }
 }
