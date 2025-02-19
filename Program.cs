@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.Channels;
 using Docker.DotNet;
 using Hangfire;
+using Hangfire.MemoryStorage;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -115,14 +116,14 @@ internal class Program : IApiMarker
             configuration =>
             {
                 configuration
-#if RELEASE
+#if FALSE
                     .UsePostgreSqlStorage(
                         conf => { conf.UseNpgsqlConnection(builder.Configuration["Database:ConnectionString"]); },
                         new PostgreSqlStorageOptions()
                         {
                             InvisibilityTimeout = TimeSpan.FromDays(1)
                         })
-#elif DEBUG
+#else
             .UseMemoryStorage(
                 new MemoryStorageOptions() // TODO: Change to external storage
                 {
