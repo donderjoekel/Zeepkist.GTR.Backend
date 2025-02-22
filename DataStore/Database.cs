@@ -29,32 +29,37 @@ public class Database : IDatabase
 
     public async Task<bool> EnsureCreated()
     {
-        Assembly assembly = typeof(Database).Assembly;
-        string resourceName = assembly.GetManifestResourceNames()
-            .Single(str => str.EndsWith("baseline.sql"));
+        await Task.Delay(100);
+        return true;
 
-        string sql;
-        await using (Stream stream = assembly.GetManifestResourceStream(resourceName))
-        {
-            using (StreamReader reader = new(stream))
-            {
-                sql = await reader.ReadToEndAsync();
-            }
-        }
+        // TIP: Uncomment this if you need to automatically create the db on startup
 
-        IDbContextTransaction transaction = await _db.Database.BeginTransactionAsync();
-        try
-        {
-            await _db.Database.ExecuteSqlRawAsync(sql);
-            await transaction.CommitAsync();
-            return true;
-        }
-        catch (Exception e)
-        {
-            await transaction.RollbackAsync();
-            _logger.LogCritical(e, "Unable to create database");
-            return false;
-        }
+        // Assembly assembly = typeof(Database).Assembly;
+        // string resourceName = assembly.GetManifestResourceNames()
+        //     .Single(str => str.EndsWith("baseline.sql"));
+        //
+        // string sql;
+        // await using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+        // {
+        //     using (StreamReader reader = new(stream))
+        //     {
+        //         sql = await reader.ReadToEndAsync();
+        //     }
+        // }
+        //
+        // IDbContextTransaction transaction = await _db.Database.BeginTransactionAsync();
+        // try
+        // {
+        //     await _db.Database.ExecuteSqlRawAsync(sql);
+        //     await transaction.CommitAsync();
+        //     return true;
+        // }
+        // catch (Exception e)
+        // {
+        //     await transaction.RollbackAsync();
+        //     _logger.LogCritical(e, "Unable to create database");
+        //     return false;
+        // }
     }
 
     public DbSet<TModel> GetDbSet<TModel>()
