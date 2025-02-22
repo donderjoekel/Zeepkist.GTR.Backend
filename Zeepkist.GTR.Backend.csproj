@@ -44,4 +44,8 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
         <PackageReference Include="TNRD.Zeepkist.GTR.Database" Version="6.0.2" />
     </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="DataStore\baseline.sql"/>
+    </ItemGroup>
 </Project>

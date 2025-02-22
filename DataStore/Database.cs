@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using TNRD.Zeepkist.GTR.Database.Data;
 
 namespace TNRD.Zeepkist.GTR.Backend.DataStore;
@@ -16,16 +18,43 @@ public interface IDatabase
 public class Database : IDatabase
 {
     private readonly GtrExperimentContext _db;
+    private readonly ILogger<Database> _logger;
 
-    public Database(GtrExperimentContext db)
+    public Database(GtrExperimentContext db, ILogger<Database> logger)
     {
         _db = db;
+        _logger = logger;
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
     }
 
     public async Task<bool> EnsureCreated()
     {
-        return await _db.Database.EnsureCreatedAsync();
+        Assembly assembly = typeof(Database).Assembly;
+        string resourceName = assembly.GetManifestResourceNames()
+            .Single(str => str.EndsWith("baseline.sql"));
+
+        string sql;
+        await using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+        {
+            using (StreamReader reader = new(stream))
+            {
+                sql = await reader.ReadToEndAsync();
+            }
+        }
+
+        IDbContextTransaction transaction = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            await _db.Database.ExecuteSqlRawAsync(sql);
+            await transaction.CommitAsync();
+            return true;
+        }
+        catch (Exception e)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogCritical(e, "Unable to create database");
+            return false;
+        }
     }
 
     public DbSet<TModel> GetDbSet<TModel>()
