@@ -134,7 +134,7 @@ public class ProcessRecordMediaHostedService : BackgroundService
                     continue; // We only care if a run is in the top 5 per player per level
 
                 Result<string> result = await mediaService.UploadGhost(record.Id, ghostData,
-                    $"{record.IdUser}-{record.IdUser}-{Guid.NewGuid()}");
+                    $"{record.IdUser}-{record.IdLevel}-{Guid.NewGuid()}");
 
                 if (result.IsFailed)
                 {
